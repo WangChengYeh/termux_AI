@@ -1,10 +1,11 @@
-# Termux Fork: Codex AI Package + MCP Extension (SDK Upgrade)
+# Termux AI: AI CLI (Codex) + MCP (Python) + SDK Upgrade (security)
 
-This proposal focuses on delivering an AI-first Termux experience: a fork of `termux/termux-app` upgraded to the latest Android SDK/AGP with a preloaded AI package (Codex) available on first run. The MCP (Model Context Protocol) CLI is provided as an optional AI extension and requires Python as a runtime dependency.
+This document defines the target: Termux AI — AI CLI (Codex) + MCP (Python) + SDK Upgrade (security). It focuses on delivering an AI-first Termux experience: a fork of `termux/termux-app` upgraded to the latest Android SDK/AGP with a preloaded AI package (Codex) available on first run. The MCP (Model Context Protocol) CLI is provided as an optional AI extension and requires Python as a runtime dependency.
 
 Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are not supported and will not receive binaries or bootstraps.
 
 ## Goals
+- Target: Termux AI — AI CLI (Codex) + MCP (Python) + SDK Upgrade (security).
 - Deliver an AI-ready fork that:
   - Targets the latest stable Android SDK and modern AGP/Gradle.
   - Keeps Termux core functionality intact (scoped storage, permissions, UX).
