@@ -10,7 +10,7 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
   - Targets the latest stable Android SDK and modern AGP/Gradle.
   - Keeps Termux core functionality intact (scoped storage, permissions, UX).
   - Preloads the core AI package: Codex CLI (`codex`) by default.
-  - Offers MCP CLI (`mcp`) as an optional extension; installs offline if enabled.
+  - Offers MCP (`mcp`) as an optional extension; installs offline if enabled.
   - Uses Python strictly as the MCP extension runtime dependency.
   - Complies with Android 10+ execution constraints (executables in app-private storage).
 
@@ -110,7 +110,7 @@ Validation:
 ## AI Package & Extension
 We want first-run to provide an AI-capable terminal with Codex as the core package and MCP as an optional extension.
 - Core AI package: Codex CLI (`codex`) — always installed where supported (aarch64 initially).
-- Optional AI extension: MCP CLI (`mcp`) — installs offline on first run if the user enables the extension (settings prompt), otherwise skipped.
+- Optional AI extension: MCP (`mcp`) — installs offline on first run if the user enables the extension (settings prompt), otherwise skipped.
 
 Python is included only to power the MCP extension; Codex works without Python.
 
@@ -148,8 +148,8 @@ Optional: Offline wheels for AI extension dependencies (aarch64 only)
 Goal: When enabled, `mcp` is usable immediately after first run without internet or manual setup.
 
 - Base packages for extension: include `python`, `openssl`, `libffi` so SSL modules work.
-- Preload wheels (pure-Python preferred) for MCP CLI:
-  - Primary: `mcp[cli]==<pin>` (Python package providing CLI)
+- Preload wheels (pure-Python preferred) for MCP:
+  - Primary: `mcp[cli]==<pin>` (Python package providing the `mcp` command)
   - This will pull dependencies like `typer`, `rich`, `prompt_toolkit`, `anyio`, `httpx`, `websockets`, `pydantic` (versions resolved at download time).
 - During bootstrap build (offline bundle creation):
   ```bash
