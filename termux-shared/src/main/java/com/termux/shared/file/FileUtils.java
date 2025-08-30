@@ -1316,7 +1316,7 @@ public class FileUtils {
 
             Logger.logVerbose(LOG_TAG, "Deleting " + label + "file at path \"" + filePath + "\"");
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (false) { // Temporarily disable Guava path due to missing RecursiveDeleteOption in Guava 30.1.1
                 /*
                  * Try to use {@link SecureDirectoryStream} if available for safer directory
                  * deletion, it should be available for android >= 8.0
