@@ -99,8 +99,8 @@ Required code/manifest updates for minSdk 33 and targetSdk ≥ 31:
 - Storage: remove deprecated `requestLegacyExternalStorage`; rely on SAF and Termux’s internal storage model.
 
 Validation:
-- `./gradlew :app:lint :app:assembleDebug` must pass.
-- Runtime checks on API 33 and 35 devices/emulators.
+- `make lint` and `make build` must pass.
+- Runtime checks on API 33 and 35 devices/emulators using `make install run`.
 
 ## Storage & File Access
 - Termux home remains inside app-internal storage.
@@ -278,7 +278,7 @@ Permissions/ownership:
 
 ## CI/CD (aarch64-only)
 - GitHub Actions matrix for `app`:
-  - Build: `./gradlew clean assembleRelease lint`
+  - Build: `make clean lint release`
   - Artifacts: upload `app-release.apk` per build.
 - GitHub Actions: aarch64-only
   - Build core APK with Codex assets for `arm64-v8a` and optional MCP assets for `arm64-v8a`.
@@ -297,7 +297,7 @@ Permissions/ownership:
   - Outputs: `bootstrap-aarch64.zip`, `extras-<pkg>-aarch64.tar.gz`, checksums.
 - Update app assets: CI syncs built artifacts into `app/src/main/assets` and regenerates the preload index.
 - Bump version: automatically bump `versionCode` and suffix `versionName` (e.g., `+preload.YYYYMMDD`).
-- Build & verify: `./gradlew clean assembleRelease lint` and run minimal instrumentation smoke tests.
+- Build & verify: `make clean lint release` and run minimal instrumentation smoke tests.
 - Release: publish GitHub Release with APK + bootstrap/extras, attach the preload manifest for auditing.
 - Install flow (device, aarch64, minSdk 33):
   - On first launch, Termux AI reads the preload index, verifies checksums, copies assets to `$PREFIX`, and runs post-install scripts.
@@ -310,11 +310,12 @@ Notes
 - Rollback: release retains previous assets; users can sideload prior APK if necessary.
 
 ## Testing
-- Unit: Lint + small unit tests for utilities.
+- Unit: `make lint test` for linting and small unit tests for utilities.
 - Instrumented: Smoke test launching `TermuxActivity`, permission flows, notification permission on API 33+.
-- E2E manual (aarch64 devices/emulators only): verify:
+- E2E manual (aarch64 devices/emulators only): Use `make install run` and verify:
   - Codex: `codex --version` works.
   - MCP extension (if enabled): `mcp --help` works without network.
+- Debug logging: Use `make logs` to monitor app behavior during testing.
 
 ## Risks & Mitigations
 - APK size growth from AI assets: use ABI splits, prune extras, ship MCP as optional to reduce default payload, consider optional network fetch for heavyweight components.
@@ -333,12 +334,12 @@ Notes
 
 ## Rollout Plan
 1. Create fork and branch.
-2. Upgrade build system to AGP 8.x, SDK 35; fix build.
+2. Upgrade build system to AGP 8.x, SDK 35; fix build using `make build`.
 3. Implement notification/runtime permission flow for 33+; add `exported` flags, `PendingIntent` fixes.
 4. Build and publish custom bootstraps with `python`.
 5. Wire app to use embedded Codex assets and optional MCP assets, with index/URLs for network fallback.
-6. Add CI; produce signed APKs.
-7. Test across API matrix on aarch64 devices/emulators only.
+6. Add CI; produce signed APKs using `make clean lint release`.
+7. Test across API matrix on aarch64 devices/emulators only using `make verify-abi install run`.
 
 ## Unsupported Architectures
 - Non-aarch64 devices (ARMv7, x86, x86_64) are not supported.
@@ -346,27 +347,51 @@ Notes
 - Users on unsupported devices should install upstream Termux without the AI enhancements.
 8. Tag v0.1.0 and release.
 
-## Local Dev Commands (reference)
+## Task Flow (Makefile)
+Prefer the Makefile for a consistent local workflow (aarch64-only). Key targets:
+
+- Build debug APK: `make build`
+- Build release APK: `BUILD_TYPE=release make build` or `make release`
+- Lint module: `make lint`
+- Run unit tests: `make test`
+- Clean outputs: `make clean`
+- Install to device (adb): `make install` (includes ABI check)
+- Uninstall app: `make uninstall`
+- Launch activity: `make run`
+- Tail logs: `make logs`
+- Verify device ABI: `make verify-abi`
+- Env check: `make doctor`
+
+Variables
+- `BUILD_TYPE`: `debug` (default) or `release`
+- `MODULE`: Gradle module name, default `app`
+- `APP_ID`: Package id, default `com.termux`
+
+### Development Workflow
+Use the Makefile for consistent local development:
 ```bash
-# Clone fork and create branch
-gh repo fork termux/termux-app --clone --remote
-cd termux-app
-git checkout -b feat/ai-runtime-preload
+# Environment check and device verification
+make doctor           # Verify tools (adb, gradlew) are available
+make devices          # List connected devices
+make verify-abi       # Ensure connected device is aarch64
 
-# Update Gradle wrapper (example to 8.6)
-./gradlew wrapper --gradle-version 8.6 --distribution-type all
+# Standard development flow
+make build            # or: BUILD_TYPE=release make build
+make lint test        # Code quality and unit tests
+make install run      # Install APK and launch app
+make logs             # Monitor app logs
 
-# Build APK
-'tools/doctor' || true
-./gradlew clean :app:assembleDebug :app:lint
-
-# Run unit tests (if present)
-./gradlew test
+# Maintenance
+make clean            # Clean build outputs
+make uninstall        # Remove app from device
 
 # Build AI bootstraps (in termux-packages)
 export TERMUX_BOOTSTRAP_PACKAGES="bash coreutils ca-certificates python"
 ./scripts/run-docker.sh ./build-package.sh -a aarch64 bootstrap
 ```
+
+### Low-level (optional)
+Direct Gradle commands still work, but the Makefile provides a more streamlined workflow with built-in aarch64 verification.
 
 ## Open Questions
 - Which Python subset and which pip packages should be preloaded by default?
@@ -375,9 +400,9 @@ export TERMUX_BOOTSTRAP_PACKAGES="bash coreutils ca-certificates python"
 - Do we want to maintain our own mirror CDN or rely on GitHub Releases bandwidth?
 
 ## Timeline (estimate)
-- Week 1: Fork + SDK/AGP upgrade + build green.
-- Week 2: Bootstrap build with `python`, publish artifacts, app URL wiring.
-- Week 3: CI hardening, testing on devices, first release.
+- Week 1: Fork + SDK/AGP upgrade + `make build` green.
+- Week 2: Bootstrap build with `python`, publish artifacts, app URL wiring, verify with `make install run`.
+- Week 3: CI hardening using `make clean lint release`, testing on devices with `make verify-abi`, first release.
 
 ---
 Maintainers can iterate on this doc as constraints or goals evolve. PRs against this fork should reference the section they affect.
