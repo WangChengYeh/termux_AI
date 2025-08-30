@@ -30,7 +30,7 @@ import com.termux.shared.R;
 import com.termux.shared.models.TextIOInfo;
 import com.termux.shared.view.KeyboardUtils;
 
-import org.jetbrains.annotations.NotNull;
+import androidx.annotation.NonNull;
 
 import java.util.Locale;
 
@@ -252,7 +252,7 @@ public class TextIOActivity extends AppCompatActivity {
         finish();
     }
 
-    @NotNull
+    @NonNull
     private Intent getResultIntent() {
         Intent intent = new Intent();
         Bundle bundle = new Bundle();

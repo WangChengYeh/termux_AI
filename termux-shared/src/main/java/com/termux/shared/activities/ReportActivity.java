@@ -30,7 +30,7 @@ import com.termux.shared.models.ReportInfo;
 import com.termux.shared.theme.NightMode;
 
 import org.commonmark.node.FencedCodeBlock;
-import org.jetbrains.annotations.NotNull;
+import androidx.annotation.NonNull;
 
 import io.noties.markwon.Markwon;
 import io.noties.markwon.recycler.MarkwonAdapter;
@@ -388,7 +388,7 @@ public class ReportActivity extends AppCompatActivity {
 
 
 
-    @NotNull
+    @NonNull
     private static String getReportInfoDirectoryPath(Context context) {
         // Canonicalize to solve /data/data and /data/user/0 issues when comparing with reportInfoFilePath
         return FileUtils.getCanonicalPath(context.getCacheDir().getAbsolutePath(), null) + "/" + CACHE_DIR_BASENAME;
