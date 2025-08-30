@@ -13,8 +13,10 @@ import com.termux.shared.shell.command.environment.ShellEnvironmentUtils;
 import com.termux.shared.shell.command.environment.ShellCommandShellEnvironment;
 import com.termux.shared.termux.TermuxBootstrap;
 import com.termux.shared.termux.TermuxConstants;
+
 import com.termux.shared.termux.shell.TermuxShellUtils;
 
+import java.io.File;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 
@@ -78,19 +80,18 @@ public class TermuxShellEnvironment extends AndroidShellEnvironment {
         environment.put(ENV_HOME, TermuxConstants.TERMUX_HOME_DIR_PATH);
         environment.put(ENV_PREFIX, TermuxConstants.TERMUX_PREFIX_DIR_PATH);
 
-        // If failsafe is not enabled, then we keep default PATH and TMPDIR so that system binaries can be used
-        if (!isFailSafe) {
-            environment.put(ENV_TMPDIR, TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
-            if (TermuxBootstrap.isAppPackageVariantAPTAndroid5()) {
-                // Termux in android 5/6 era shipped busybox binaries in applets directory
-                environment.put(ENV_PATH, TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + ":" + TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + "/applets");
-                environment.put(ENV_LD_LIBRARY_PATH, TermuxConstants.TERMUX_LIB_PREFIX_DIR_PATH);
-            } else {
-                // Termux binaries on Android 7+ rely on DT_RUNPATH, so LD_LIBRARY_PATH should be unset by default
-                environment.put(ENV_PATH, TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH);
-                environment.remove(ENV_LD_LIBRARY_PATH);
-            }
+        // Use SELinux-compatible app-private bin directory + system fallback
+        environment.put(ENV_TMPDIR, TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
+        
+        // Read the stored app-private bin directory path
+        String appPrivateBinPath = getAppPrivateBinPath();
+        if (appPrivateBinPath != null) {
+            environment.put(ENV_PATH, appPrivateBinPath + ":/system/bin");
+        } else {
+            // Fallback to system bin only if no app-private bin available
+            environment.put(ENV_PATH, "/system/bin");
         }
+        environment.remove(ENV_LD_LIBRARY_PATH);
 
         return environment;
     }
@@ -105,7 +106,31 @@ public class TermuxShellEnvironment extends AndroidShellEnvironment {
     @NonNull
     @Override
     public String getDefaultBinPath() {
-        return TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH;
+        // Return SELinux-compatible app-private bin path or fallback to system bin
+        String appPrivateBinPath = getAppPrivateBinPath();
+        return appPrivateBinPath != null ? appPrivateBinPath : "/system/bin";
+    }
+    
+    /**
+     * Get the stored app-private bin directory path
+     */
+    private String getAppPrivateBinPath() {
+        try {
+            String binPathFile = TermuxConstants.TERMUX_FILES_DIR_PATH + "/.termux-bin-path";
+            File file = new File(binPathFile);
+            if (file.exists()) {
+                java.util.Scanner scanner = new java.util.Scanner(file);
+                if (scanner.hasNextLine()) {
+                    String path = scanner.nextLine().trim();
+                    scanner.close();
+                    return path;
+                }
+                scanner.close();
+            }
+        } catch (Exception e) {
+            // Ignore and fallback
+        }
+        return null;
     }
 
     @NonNull

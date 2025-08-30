@@ -53,7 +53,7 @@ public abstract class UnixShellEnvironment implements IShellEnvironment {
 
 
     /** Names for common/supported login shell binaries. */
-    public static final String[] LOGIN_SHELL_BINARIES = new String[]{"login", "bash", "zsh", "fish", "sh"};
+    public static final String[] LOGIN_SHELL_BINARIES = new String[]{"bash", "login", "zsh", "fish", "sh"};
 
 
 

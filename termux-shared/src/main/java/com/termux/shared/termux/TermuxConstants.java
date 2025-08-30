@@ -602,6 +602,14 @@ public final class TermuxConstants {
     /** Termux app $PREFIX/bin directory */
     public static final File TERMUX_BIN_PREFIX_DIR = new File(TERMUX_BIN_PREFIX_DIR_PATH);
 
+    /** Termux app user executables directory path (Android 10+ exec policy compliant) */
+    public static final String TERMUX_USER_BIN_DIR_PATH = TERMUX_FILES_DIR_PATH + "/user/bin"; // Default: "/data/data/com.termux/files/user/bin"
+    /** Termux app user executables directory */
+    public static final File TERMUX_USER_BIN_DIR = new File(TERMUX_USER_BIN_DIR_PATH);
+
+    /** Termux app assets executables path (direct execution from APK assets) */
+    public static final String TERMUX_ASSETS_EXECUTABLES_PATH = "executables"; // Assets path: "executables/"
+
 
     /** Termux app $PREFIX/etc directory path */
     public static final String TERMUX_ETC_PREFIX_DIR_PATH = TERMUX_PREFIX_DIR_PATH + "/etc"; // Default: "/data/data/com.termux/files/usr/etc"

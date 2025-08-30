@@ -7,8 +7,11 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
 import android.system.Os;
-import android.util.Pair;
 import android.view.WindowManager;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 import com.termux.R;
 import com.termux.shared.file.FileUtils;
@@ -22,16 +25,6 @@ import com.termux.shared.android.PackageUtils;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxUtils;
 import com.termux.shared.termux.shell.command.environment.TermuxShellEnvironment;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import static com.termux.shared.termux.TermuxConstants.TERMUX_PREFIX_DIR;
 import static com.termux.shared.termux.TermuxConstants.TERMUX_PREFIX_DIR_PATH;
@@ -102,130 +95,34 @@ final class TermuxInstaller {
             return;
         }
 
-        // If prefix directory exists, even if its a symlink to a valid directory and symlink is not broken/dangling
-        if (FileUtils.directoryFileExists(TERMUX_PREFIX_DIR_PATH, true)) {
-            if (TermuxFileUtils.isTermuxPrefixDirectoryEmpty()) {
-                Logger.logInfo(LOG_TAG, "The termux prefix directory \"" + TERMUX_PREFIX_DIR_PATH + "\" exists but is empty or only contains specific unimportant files.");
-            } else {
-                whenDone.run();
-                return;
-            }
-        } else if (FileUtils.fileExists(TERMUX_PREFIX_DIR_PATH, false)) {
-            Logger.logInfo(LOG_TAG, "The termux prefix directory \"" + TERMUX_PREFIX_DIR_PATH + "\" does not exist but another file exists at its destination.");
-        }
-
-        final ProgressDialog progress = ProgressDialog.show(activity, null, activity.getString(R.string.bootstrap_installer_body), true, false);
+        // Install minimal bootstrap with system binary wrappers
+        Logger.logInfo(LOG_TAG, "Installing minimal bootstrap with Android native system binary wrappers.");
+        
+        // Create basic directory structure
+        FileUtils.createDirectoryFile(TERMUX_PREFIX_DIR_PATH);
+        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_HOME_DIR_PATH);
+        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
+        
+        // Install minimal bootstrap from assets to SELinux-compatible directory
+        final ProgressDialog progress = ProgressDialog.show(activity, null, "Installing minimal bootstrap...", true, false);
         new Thread() {
             @Override
             public void run() {
                 try {
-                    Logger.logInfo(LOG_TAG, "Installing " + TermuxConstants.TERMUX_APP_NAME + " bootstrap packages.");
-
-                    Error error;
-
-                    // Delete prefix staging directory or any file at its destination
-                    error = FileUtils.deleteFile("termux prefix staging directory", TERMUX_STAGING_PREFIX_DIR_PATH, true);
-                    if (error != null) {
-                        showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                        return;
-                    }
-
-                    // Delete prefix directory or any file at its destination
-                    error = FileUtils.deleteFile("termux prefix directory", TERMUX_PREFIX_DIR_PATH, true);
-                    if (error != null) {
-                        showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                        return;
-                    }
-
-                    // Create prefix staging directory if it does not already exist and set required permissions
-                    error = TermuxFileUtils.isTermuxPrefixStagingDirectoryAccessible(true, true);
-                    if (error != null) {
-                        showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                        return;
-                    }
-
-                    // Create prefix directory if it does not already exist and set required permissions
-                    error = TermuxFileUtils.isTermuxPrefixDirectoryAccessible(true, true);
-                    if (error != null) {
-                        showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                        return;
-                    }
-
-                    Logger.logInfo(LOG_TAG, "Extracting bootstrap zip to prefix staging directory \"" + TERMUX_STAGING_PREFIX_DIR_PATH + "\".");
-
-                    final byte[] buffer = new byte[8096];
-                    final List<Pair<String, String>> symlinks = new ArrayList<>(50);
-
-                    final byte[] zipBytes = loadZipBytes();
-                    try (ZipInputStream zipInput = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
-                        ZipEntry zipEntry;
-                        while ((zipEntry = zipInput.getNextEntry()) != null) {
-                            if (zipEntry.getName().equals("SYMLINKS.txt")) {
-                                BufferedReader symlinksReader = new BufferedReader(new InputStreamReader(zipInput));
-                                String line;
-                                while ((line = symlinksReader.readLine()) != null) {
-                                    String[] parts = line.split("←");
-                                    if (parts.length != 2)
-                                        throw new RuntimeException("Malformed symlink line: " + line);
-                                    String oldPath = parts[0];
-                                    String newPath = TERMUX_STAGING_PREFIX_DIR_PATH + "/" + parts[1];
-                                    symlinks.add(Pair.create(oldPath, newPath));
-
-                                    error = ensureDirectoryExists(new File(newPath).getParentFile());
-                                    if (error != null) {
-                                        showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                                        return;
-                                    }
-                                }
-                            } else {
-                                String zipEntryName = zipEntry.getName();
-                                File targetFile = new File(TERMUX_STAGING_PREFIX_DIR_PATH, zipEntryName);
-                                boolean isDirectory = zipEntry.isDirectory();
-
-                                error = ensureDirectoryExists(isDirectory ? targetFile : targetFile.getParentFile());
-                                if (error != null) {
-                                    showBootstrapErrorDialog(activity, whenDone, Error.getErrorMarkdownString(error));
-                                    return;
-                                }
-
-                                if (!isDirectory) {
-                                    try (FileOutputStream outStream = new FileOutputStream(targetFile)) {
-                                        int readBytes;
-                                        while ((readBytes = zipInput.read(buffer)) != -1)
-                                            outStream.write(buffer, 0, readBytes);
-                                    }
-                                    if (zipEntryName.startsWith("bin/") || zipEntryName.startsWith("libexec") ||
-                                        zipEntryName.startsWith("lib/apt/apt-helper") || zipEntryName.startsWith("lib/apt/methods")) {
-                                        //noinspection OctalInteger
-                                        Os.chmod(targetFile.getAbsolutePath(), 0700);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (symlinks.isEmpty())
-                        throw new RuntimeException("No SYMLINKS.txt encountered");
-                    for (Pair<String, String> symlink : symlinks) {
-                        Os.symlink(symlink.first, symlink.second);
-                    }
-
-                    Logger.logInfo(LOG_TAG, "Moving termux prefix staging to prefix directory.");
-
-                    if (!TERMUX_STAGING_PREFIX_DIR.renameTo(TERMUX_PREFIX_DIR)) {
-                        throw new RuntimeException("Moving termux prefix staging to prefix directory failed");
-                    }
-
-                    Logger.logInfo(LOG_TAG, "Bootstrap packages installed successfully.");
-
-                    // Recreate env file since termux prefix was wiped earlier
+                    // Copy minimal bootstrap from assets to app-private bin directory
+                    File binDir = copyMinimalBootstrapFromAssets(activity);
+                    
+                    // Store the bin directory path for environment setup
+                    storeBinDirectoryPath(activity, binDir.getAbsolutePath());
+                    
+                    Logger.logInfo(LOG_TAG, "Minimal bootstrap installation completed successfully.");
+                    
+                    // Write environment file
                     TermuxShellEnvironment.writeEnvironmentToFile(activity);
-
+                    
                     activity.runOnUiThread(whenDone);
-
                 } catch (final Exception e) {
                     showBootstrapErrorDialog(activity, whenDone, Logger.getStackTracesMarkdownString(null, Logger.getStackTracesStringArray(e)));
-
                 } finally {
                     activity.runOnUiThread(() -> {
                         try {
@@ -237,6 +134,89 @@ final class TermuxInstaller {
                 }
             }
         }.start();
+    }
+
+    /**
+     * Copy minimal bootstrap wrapper scripts from assets to SELinux-compatible app-private bin directory
+     */
+    private static File copyMinimalBootstrapFromAssets(Activity activity) throws Exception {
+        // Use getDir("bin", 0) to create SELinux-compatible app-private directory
+        File binDir = activity.getDir("bin", 0);
+        String binDirPath = binDir.getAbsolutePath();
+        
+        Logger.logInfo(LOG_TAG, "Using SELinux-compatible bin directory: " + binDirPath);
+        
+        // Copy wrapper scripts from assets/bootstrap/bin/
+        String[] wrapperScripts = {"ls", "pwd", "cat", "echo"};
+        byte[] buffer = new byte[8096];
+        
+        for (String script : wrapperScripts) {
+            String assetPath = "bootstrap/bin/" + script;
+            String targetPath = binDirPath + "/" + script;
+            
+            try (InputStream assetStream = activity.getAssets().open(assetPath);
+                 FileOutputStream outStream = new FileOutputStream(targetPath)) {
+                int readBytes;
+                while ((readBytes = assetStream.read(buffer)) != -1) {
+                    outStream.write(buffer, 0, readBytes);
+                }
+            }
+            
+            // Set executable permissions for SELinux compatibility
+            File outFile = new File(targetPath);
+            Os.chmod(outFile.getAbsolutePath(), 0700);
+        }
+        
+        // Copy Codex native executables from assets/extras/aarch64/codex/
+        String[] codexBinaries = {"codex-aarch64-linux-android", "codex-exec-aarch64-linux-android"};
+        
+        for (String binary : codexBinaries) {
+            String assetPath = "extras/aarch64/codex/" + binary;
+            String targetPath = binDirPath + "/" + binary;
+            
+            try (InputStream assetStream = activity.getAssets().open(assetPath);
+                 FileOutputStream outStream = new FileOutputStream(targetPath)) {
+                int readBytes;
+                while ((readBytes = assetStream.read(buffer)) != -1) {
+                    outStream.write(buffer, 0, readBytes);
+                }
+            }
+            
+            // Set executable permissions for Codex native binaries
+            File outFile = new File(targetPath);
+            Os.chmod(outFile.getAbsolutePath(), 0700);
+        }
+        
+        // Create codex wrapper script with proper HOME environment
+        String codexWrapperPath = binDirPath + "/codex";
+        String codexBinaryPath = binDirPath + "/codex-aarch64-linux-android";
+        
+        String codexWrapperContent = "#!/system/bin/sh\n" +
+            "export HOME=/data/data/com.termux/files/home\n" +
+            "exec " + codexBinaryPath + " \"$@\"\n";
+            
+        try (FileOutputStream outStream = new FileOutputStream(codexWrapperPath)) {
+            outStream.write(codexWrapperContent.getBytes());
+        }
+        
+        // Set executable permissions for codex wrapper
+        File codexWrapperFile = new File(codexWrapperPath);
+        Os.chmod(codexWrapperFile.getAbsolutePath(), 0700);
+        
+        Logger.logInfo(LOG_TAG, "Minimal bootstrap wrapper scripts installed to SELinux-compatible directory successfully.");
+        return binDir;
+    }
+    
+    /**
+     * Store the app-private bin directory path for environment setup
+     */
+    private static void storeBinDirectoryPath(Activity activity, String binDirPath) throws Exception {
+        // Store in a simple file for the environment to read
+        String binPathFile = TermuxConstants.TERMUX_FILES_DIR_PATH + "/.termux-bin-path";
+        try (FileOutputStream outStream = new FileOutputStream(binPathFile)) {
+            outStream.write(binDirPath.getBytes());
+        }
+        Logger.logInfo(LOG_TAG, "Stored SELinux-compatible bin directory path: " + binDirPath);
     }
 
     public static void showBootstrapErrorDialog(Activity activity, Runnable whenDone, String message) {
@@ -375,12 +355,5 @@ final class TermuxInstaller {
         return FileUtils.createDirectoryFile(directory.getAbsolutePath());
     }
 
-    public static byte[] loadZipBytes() {
-        // Only load the shared library when necessary to save memory usage.
-        System.loadLibrary("termux-bootstrap");
-        return getZip();
-    }
-
-    public static native byte[] getZip();
 
 }
