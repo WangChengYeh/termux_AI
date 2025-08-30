@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "architecture": "arm64-v8a",
+  "packages": {
+    "codex": {
+      "name": "Codex CLI",
+      "version": "0.25.0",
+      "required": true,
+      "asset_path": "extras/aarch64/codex/android-codex-cli-binaries-0.25.0-aarch64.tar.gz",
+      "checksum": "sha256:657f3a26edbae922dec5d578e53a39d49db82261b6a32cc041231c7d10b3b917",
+      "install_path": "$PREFIX/opt/codex",
+      "symlinks": [
+        {"src": "$PREFIX/opt/codex/bin/codex", "dest": "$PREFIX/bin/codex"},
+        {"src": "$PREFIX/opt/codex/bin/codexd", "dest": "$PREFIX/bin/codexd"},
+        {"src": "$PREFIX/opt/codex/bin/codex-cli", "dest": "$PREFIX/bin/codex-cli"}
+      ]
+    },
+    "mcp": {
+      "name": "Model Context Protocol",
+      "version": "latest",
+      "required": false,
+      "asset_path": "extras/aarch64/mcp/mcp-wheels.tar.gz",
+      "checksum": "sha256:c68e6b0900d83f2e64615827a98625a3a6f3143dc3dc71fdd560e0a19a0b7a2c",
+      "install_path": "$PREFIX/share/wheels/mcp-cli",
+      "post_install_script": "mcp-install.sh"
+    }
+  }
+}

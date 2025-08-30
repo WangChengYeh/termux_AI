@@ -193,6 +193,12 @@
         <string name="termux_terminal_view_preferences_title">Terminal View</string>
         <string name="termux_terminal_view_preferences_summary">Preferences for terminal view</string>
 
+        <!-- AI Preferences -->
+        <string name="termux_ai_preferences_title">AI Extensions</string>
+        <string name="termux_ai_preferences_summary">Preferences for AI packages and extensions</string>
+        <string name="termux_ai_mcp_enable_title">Enable MCP Extension</string>
+        <string name="termux_ai_mcp_enable_summary">Install Model Context Protocol (MCP) extension with Python runtime</string>
+
             <!-- View Category -->
             <string name="termux_terminal_view_view_header">View</string>
 
@@ -234,5 +240,9 @@
 
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
+
+    <!-- Dialog Actions -->
+    <string name="action_yes">Yes</string>
+    <string name="action_no">No</string>
 
 </resources>

@@ -274,6 +274,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return;
         }
 
+        // Request notification permission for Android 13+
+        com.termux.app.PermissionUtils.requestNotificationPermissionIfNeeded(this);
+
         // Send the {@link TermuxConstants#BROADCAST_TERMUX_OPENED} broadcast to notify apps that Termux
         // app has been opened.
         TermuxUtils.sendTermuxOpenedBroadcast(this);
@@ -397,16 +400,19 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         if (mTermuxService.isTermuxSessionsEmpty()) {
             if (mIsVisible) {
                 TermuxInstaller.setupBootstrapIfNeeded(TermuxActivity.this, () -> {
-                    if (mTermuxService == null) return; // Activity might have been destroyed.
-                    try {
-                        boolean launchFailsafe = false;
-                        if (intent != null && intent.getExtras() != null) {
-                            launchFailsafe = intent.getExtras().getBoolean(TERMUX_ACTIVITY.EXTRA_FAILSAFE_SESSION, false);
+                    // Install AI packages after bootstrap is complete
+                    TermuxAIInstaller.setupAIPackagesIfNeeded(TermuxActivity.this, () -> {
+                        if (mTermuxService == null) return; // Activity might have been destroyed.
+                        try {
+                            boolean launchFailsafe = false;
+                            if (intent != null && intent.getExtras() != null) {
+                                launchFailsafe = intent.getExtras().getBoolean(TERMUX_ACTIVITY.EXTRA_FAILSAFE_SESSION, false);
+                            }
+                            mTermuxTerminalSessionActivityClient.addNewSession(launchFailsafe, null);
+                        } catch (WindowManager.BadTokenException e) {
+                            // Activity finished - ignore.
                         }
-                        mTermuxTerminalSessionActivityClient.addNewSession(launchFailsafe, null);
-                    } catch (WindowManager.BadTokenException e) {
-                        // Activity finished - ignore.
-                    }
+                    });
                 });
             } else {
                 // The service connected while not in foreground - just bail out.
@@ -802,6 +808,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         Logger.logVerbose(LOG_TAG, "onRequestPermissionsResult: requestCode: " + requestCode + ", permissions: "  + Arrays.toString(permissions) + ", grantResults: "  + Arrays.toString(grantResults));
+        
+        // Handle notification permission for Android 13+
+        if (com.termux.app.PermissionUtils.handleNotificationPermissionResult(requestCode, permissions, grantResults)) {
+            return;
+        }
+        
         if (requestCode == PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION) {
             requestStoragePermission(true);
         }

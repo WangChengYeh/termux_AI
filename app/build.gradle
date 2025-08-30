@@ -13,7 +13,12 @@ ext {
 }
 
 android {
+    namespace "com.termux"
     compileSdkVersion project.properties.compileSdkVersion.toInteger()
+    
+    buildFeatures {
+        buildConfig true
+    }
     ndkVersion = System.getenv("JITPACK_NDK_VERSION") ?: project.properties.ndkVersion
     def appVersionName = System.getenv("TERMUX_APP_VERSION_NAME") ?: ""
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
@@ -21,17 +26,20 @@ android {
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
 
     dependencies {
-        implementation "androidx.annotation:annotation:1.3.0"
-        implementation "androidx.core:core:1.6.0"
-        implementation "androidx.drawerlayout:drawerlayout:1.1.1"
-        implementation "androidx.preference:preference:1.1.1"
+        implementation "androidx.annotation:annotation:1.8.2"
+        implementation "androidx.core:core-ktx:1.13.1"
+        implementation "androidx.drawerlayout:drawerlayout:1.2.0"
+        implementation "androidx.preference:preference:1.2.1"
         implementation "androidx.viewpager:viewpager:1.0.0"
-        implementation "com.google.android.material:material:1.4.0"
-        implementation "com.google.guava:guava:24.1-jre"
+        implementation "com.google.android.material:material:1.12.0"
+        implementation("com.google.guava:guava:32.1.3-jre") {
+            exclude group: 'com.google.guava', module: 'listenablefuture'
+        }
         implementation "io.noties.markwon:core:$markwonVersion"
         implementation "io.noties.markwon:ext-strikethrough:$markwonVersion"
         implementation "io.noties.markwon:linkify:$markwonVersion"
         implementation "io.noties.markwon:recycler:$markwonVersion"
+        implementation "org.apache.commons:commons-compress:1.24.0"
 
         implementation project(":terminal-view")
         implementation project(":termux-shared")
@@ -69,8 +77,8 @@ android {
                 enable ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
                     (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
                 reset ()
-                include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
-                universalApk true
+                include 'arm64-v8a' // aarch64 only
+                universalApk false
             }
         }
     }
@@ -100,8 +108,8 @@ android {
         // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true
 
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     externalNativeBuild {
@@ -120,10 +128,17 @@ android {
         }
     }
 
-    packagingOptions {
+    packaging {
         jniLibs {
             useLegacyPackaging true
         }
+        resources {
+            excludes += ["META-INF/LICENSE*", "META-INF/DEPENDENCIES"]
+        }
+    }
+
+    aaptOptions {
+        noCompress 'tar', 'gz', 'zip'
     }
 
     applicationVariants.all { variant ->

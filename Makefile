@@ -32,7 +32,11 @@ help:
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 
 build:
-	$(GRADLEW) :$(MODULE):assemble$$(echo $(BUILD_TYPE) | sed 's/.*/\U&/')
+	@if [ "$(BUILD_TYPE)" = "debug" ]; then \
+		$(GRADLEW) :$(MODULE):assembleDebug; \
+	else \
+		$(GRADLEW) :$(MODULE):assembleRelease; \
+	fi
 	@echo "Built: $(APK)"
 
 release:
