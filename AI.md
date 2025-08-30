@@ -180,7 +180,7 @@ EOF
   fi
   ```
 - Verification (first run smoke test):
-  - If extension enabled: `mcp --help` shows CLI usage without network.
+  - If extension enabled: `codex exec /mcp` shows CLI usage without network.
   - `python --version` is informational only.
   - Document MCP config under `$HOME/.config/mcp/*` when integrating with Codex or other tools.
 
