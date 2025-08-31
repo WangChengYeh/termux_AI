@@ -22,6 +22,7 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 - **Packaging**: All executables packaged as `.so` files in `app/src/main/jniLibs/arm64-v8a/`
   - AI tools: `libcodex.so`, `libcodex-exec.so`
   - Package management: `libapt.so`, `libpkg.so`, `libdpkg.so`
+  - Development runtime: `libnode.so`, `libnpm.so`
   - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so`
 - **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
 - **Access**: Shell aliases in `~/.profile` point directly to native library paths
@@ -116,6 +117,10 @@ After app launch, the following commands are available via aliases:
 - **`pkg`**: Simplified package management wrapper
 - **`dpkg`**: Debian package management utilities
 
+### Development Runtime
+- **`node`**: Node.js runtime for JavaScript development
+- **`npm`**: Node Package Manager for installing JavaScript packages
+
 ### Core Utilities
 - **`cat`**, **`echo`**, **`ls`**, **`pwd`**: Essential shell commands via native libraries
 
@@ -133,6 +138,12 @@ codex-exec "write a shell script to backup files"
 apt update && apt upgrade
 pkg install python
 dpkg -l | grep python
+
+# Node.js development
+node --version
+npm --version
+npm init -y
+npm install express
 
 # Core utilities  
 ls -la
@@ -157,6 +168,10 @@ alias apt='/data/app/{hash}/lib/arm64/libapt.so'
 alias pkg='/data/app/{hash}/lib/arm64/libpkg.so' 
 alias dpkg='/data/app/{hash}/lib/arm64/libdpkg.so'
 
+# Development Runtime - Node.js and NPM
+alias node='/data/app/{hash}/lib/arm64/libnode.so'
+alias npm='/data/app/{hash}/lib/arm64/libnpm.so'
+
 # Core Utilities - Essential commands via native libraries
 alias cat='/data/app/{hash}/lib/arm64/libcat.so'
 alias echo='/data/app/{hash}/lib/arm64/libecho.so'
@@ -165,13 +180,15 @@ alias pwd='/data/app/{hash}/lib/arm64/libpwd.so'
 ```
 
 ### Native Library Symlinks
-Core utilities are also available via traditional symlinks in the bootstrap directory:
+Core utilities and development tools are also available via traditional symlinks in the bootstrap directory:
 ```bash
 # Bootstrap symlinks (for compatibility)
 $PREFIX/bin/cat -> /data/app/{hash}/lib/arm64/libcat.so
 $PREFIX/bin/echo -> /data/app/{hash}/lib/arm64/libecho.so  
 $PREFIX/bin/ls -> /data/app/{hash}/lib/arm64/libls.so
 $PREFIX/bin/pwd -> /data/app/{hash}/lib/arm64/libpwd.so
+$PREFIX/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
+$PREFIX/bin/npm -> /data/app/{hash}/lib/arm64/libnpm.so
 ```
 
 ## Security & Compliance
@@ -257,6 +274,8 @@ cd /data/data/com.termux/files/home
 source .profile
 codex --help         # Should show AI CLI help
 codex-exec --help    # Should show non-interactive help
+node --version       # Should show Node.js version
+npm --version        # Should show NPM version
 ```
 
 ### Build Verification
@@ -284,6 +303,7 @@ make logs           # Monitor app behavior
 🎯 **Current Implementation**:
 - Native Codex CLI available immediately after app launch
 - Integrated APT/pkg package management for extensibility
+- Node.js runtime and NPM for JavaScript development
 - Core utilities (cat, ls, echo, pwd) as native libraries
 - No internet required for core AI functionality  
 - Secure read-only executable placement
@@ -292,6 +312,7 @@ make logs           # Monitor app behavior
 ### Package Integration Details
 - **Core tools**: Embedded as native libraries for instant access
 - **APT integration**: Package manager available for additional software
+- **Node.js runtime**: Full JavaScript development environment included
 - **Hybrid approach**: Performance + flexibility without traditional bootstrap overhead
 
 ## License
