@@ -119,7 +119,7 @@ final class TermuxInstaller {
     }
 
     /**
-     * Verify native executables are extracted and store paths for alias setup
+     * Verify native executables are extracted and create symbolic links
      */
     private static void installNativeExecutables(Activity activity) throws Exception {
         // Native libs are automatically extracted to /data/app/{package}/lib/arm64/ 
@@ -127,34 +127,117 @@ final class TermuxInstaller {
         String nativeLibDir = activity.getApplicationInfo().nativeLibraryDir;
         Logger.logInfo(LOG_TAG, "Native libraries extracted to read-only location: " + nativeLibDir);
         
-        // Verify the native libraries exist and are executable
-        String[] expectedLibs = {"libcodex.so", "libcodex-exec.so"};
-        for (String lib : expectedLibs) {
-            File nativeLib = new File(nativeLibDir, lib);
-            if (!nativeLib.exists()) {
-                throw new Exception("Native library not found: " + nativeLib.getAbsolutePath());
-            }
-        }
+        // Create symbolic links for all native libraries
+        createSymbolicLinks(activity, nativeLibDir);
         
-        // Store native lib paths for alias setup in shell environment
-        storeNativeLibPaths(activity, nativeLibDir);
-        
-        Logger.logInfo(LOG_TAG, "Native executables verified. Aliases will point to: " + nativeLibDir);
+        Logger.logInfo(LOG_TAG, "Native executables and libraries verified. Symbolic links created from: " + nativeLibDir);
     }
     
     /**
-     * Store native library paths for alias setup
+     * Create symbolic links for executables and libraries
      */
-    private static void storeNativeLibPaths(Activity activity, String nativeLibDir) throws Exception {
-        // Create shell profile with aliases for native executables
+    private static void createSymbolicLinks(Activity activity, String nativeLibDir) throws Exception {
+        // Create directories for symbolic links
+        String binDir = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH;
+        String libDir = TermuxConstants.TERMUX_LIB_PREFIX_DIR_PATH;
+        FileUtils.createDirectoryFile(binDir);
+        FileUtils.createDirectoryFile(libDir);
+        
+        // Define executables that go to /usr/bin
+        String[][] executables = {
+            {"libcodex.so", "codex"},
+            {"libcodex-exec.so", "codex-exec"},
+            {"libapt.so", "apt"},
+            {"libnode.so", "node"}
+        };
+        
+        // Define libraries that go to /usr/lib
+        String[][] libraries = {
+            {"libandroid-glob.so", "libandroid-glob.so"},
+            {"libapt-private.so", "libapt-private.so"},
+            {"libapt-pkg.so", "libapt-pkg.so"},
+            {"libzlib.so", "libz.so"},
+            {"libz.so", "libz.so"}
+        };
+        
+        // Define additional symlinks that point to existing libraries
+        String[][] additionalSymlinks = {
+            {"libz.so", "libz.so.1"},      // Node.js needs libz.so.1 -> point to libz.so
+            {"libz.so", "libz.so.1.3.1"}   // Full version symlink
+        };
+        
+        // Create symlinks for executables in /usr/bin
+        for (String[] exe : executables) {
+            String sourcePath = nativeLibDir + "/" + exe[0];
+            File sourceFile = new File(sourcePath);
+            
+            if (sourceFile.exists()) {
+                String linkPath = binDir + "/" + exe[1];
+                File linkFile = new File(linkPath);
+                
+                // Remove existing link if present
+                if (linkFile.exists()) {
+                    linkFile.delete();
+                }
+                
+                // Create symbolic link
+                Os.symlink(sourcePath, linkPath);
+                Logger.logInfo(LOG_TAG, "Created executable symlink: " + linkPath + " -> " + sourcePath);
+            }
+        }
+        
+        // Create symlinks for libraries in /usr/lib
+        for (String[] lib : libraries) {
+            String sourcePath = nativeLibDir + "/" + lib[0];
+            File sourceFile = new File(sourcePath);
+            
+            if (sourceFile.exists()) {
+                String linkPath = libDir + "/" + lib[1];
+                File linkFile = new File(linkPath);
+                
+                // Remove existing link if present
+                if (linkFile.exists()) {
+                    linkFile.delete();
+                }
+                
+                // Create symbolic link
+                Os.symlink(sourcePath, linkPath);
+                Logger.logInfo(LOG_TAG, "Created library symlink: " + linkPath + " -> " + sourcePath);
+            }
+        }
+        
+        // Create additional versioned symlinks within /usr/lib
+        for (String[] symlink : additionalSymlinks) {
+            String sourcePath = libDir + "/" + symlink[0];  // Point to existing symlink in /usr/lib
+            File sourceFile = new File(sourcePath);
+            
+            if (sourceFile.exists()) {
+                String linkPath = libDir + "/" + symlink[1];
+                File linkFile = new File(linkPath);
+                
+                // Remove existing link if present
+                if (linkFile.exists()) {
+                    linkFile.delete();
+                }
+                
+                // Create symbolic link
+                Os.symlink(sourcePath, linkPath);
+                Logger.logInfo(LOG_TAG, "Created versioned library symlink: " + linkPath + " -> " + sourcePath);
+            }
+        }
+        
+        // Create shell profile with PATH and LD_LIBRARY_PATH configuration
         String profileFile = TermuxConstants.TERMUX_HOME_DIR_PATH + "/.profile";
         String profileContent = "# Termux shell profile\n" +
             "export HOME=" + TermuxConstants.TERMUX_HOME_DIR_PATH + "\n" +
             "export PREFIX=" + TermuxConstants.TERMUX_PREFIX_DIR_PATH + "\n" +
+            "export PATH=" + binDir + ":$PATH\n" +
+            "export LD_LIBRARY_PATH=" + nativeLibDir + ":" + libDir + ":$LD_LIBRARY_PATH\n" +
             "\n" +
-            "# Aliases for native executables in read-only /data/app location\n" +
-            "alias codex='" + nativeLibDir + "/libcodex.so'\n" +
-            "alias codex-exec='" + nativeLibDir + "/libcodex-exec.so'\n";
+            "# Native executables and libraries are linked from read-only /data/app location\n" +
+            "# Executables in " + binDir + "\n" +
+            "# Libraries in " + libDir + "\n" +
+            "# Native libraries in " + nativeLibDir + "\n";
             
         try (FileOutputStream outStream = new FileOutputStream(profileFile)) {
             outStream.write(profileContent.getBytes());
@@ -164,7 +247,7 @@ final class TermuxInstaller {
         File profile = new File(profileFile);
         Os.chmod(profile.getAbsolutePath(), 0644);
         
-        Logger.logInfo(LOG_TAG, "Created .profile with aliases for native executables: " + nativeLibDir);
+        Logger.logInfo(LOG_TAG, "Created .profile with PATH and LD_LIBRARY_PATH configuration");
     }
     
 

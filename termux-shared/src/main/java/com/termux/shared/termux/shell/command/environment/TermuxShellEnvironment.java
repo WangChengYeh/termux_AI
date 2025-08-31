@@ -80,10 +80,13 @@ public class TermuxShellEnvironment extends AndroidShellEnvironment {
         environment.put(ENV_HOME, TermuxConstants.TERMUX_HOME_DIR_PATH);
         environment.put(ENV_PREFIX, TermuxConstants.TERMUX_PREFIX_DIR_PATH);
 
-        // Use Android native system binaries only
+        // Set PATH to include Termux bin directory and system binaries
         environment.put(ENV_TMPDIR, TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
-        environment.put(ENV_PATH, "/system/bin");
-        environment.remove(ENV_LD_LIBRARY_PATH);
+        environment.put(ENV_PATH, TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + ":/system/bin");
+        
+        // Set LD_LIBRARY_PATH to include both native lib directory and Termux lib directory
+        String nativeLibDir = currentPackageContext.getApplicationInfo().nativeLibraryDir;
+        environment.put(ENV_LD_LIBRARY_PATH, nativeLibDir + ":" + TermuxConstants.TERMUX_LIB_PREFIX_DIR_PATH);
 
         return environment;
     }
