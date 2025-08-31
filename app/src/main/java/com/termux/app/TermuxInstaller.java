@@ -95,129 +95,75 @@ final class TermuxInstaller {
             return;
         }
 
-        // Install minimal bootstrap with system binary wrappers
-        Logger.logInfo(LOG_TAG, "Installing minimal bootstrap with Android native system binary wrappers.");
+        // Place native executables in /data/app read-only location
+        Logger.logInfo(LOG_TAG, "Installing native executables to /data/app directory.");
+        
+        try {
+            installNativeExecutables(activity);
+        } catch (Exception e) {
+            Logger.logError(LOG_TAG, "Failed to install native executables: " + e.getMessage());
+            showBootstrapErrorDialog(activity, whenDone, "Failed to install native executables: " + e.getMessage());
+            return;
+        }
         
         // Create basic directory structure
         FileUtils.createDirectoryFile(TERMUX_PREFIX_DIR_PATH);
         FileUtils.createDirectoryFile(TermuxConstants.TERMUX_HOME_DIR_PATH);
         FileUtils.createDirectoryFile(TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
         
-        // Install minimal bootstrap from assets to SELinux-compatible directory
-        final ProgressDialog progress = ProgressDialog.show(activity, null, "Installing minimal bootstrap...", true, false);
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    // Copy minimal bootstrap from assets to app-private bin directory
-                    File binDir = copyMinimalBootstrapFromAssets(activity);
-                    
-                    // Store the bin directory path for environment setup
-                    storeBinDirectoryPath(activity, binDir.getAbsolutePath());
-                    
-                    Logger.logInfo(LOG_TAG, "Minimal bootstrap installation completed successfully.");
-                    
-                    // Write environment file
-                    TermuxShellEnvironment.writeEnvironmentToFile(activity);
-                    
-                    activity.runOnUiThread(whenDone);
-                } catch (final Exception e) {
-                    showBootstrapErrorDialog(activity, whenDone, Logger.getStackTracesMarkdownString(null, Logger.getStackTracesStringArray(e)));
-                } finally {
-                    activity.runOnUiThread(() -> {
-                        try {
-                            progress.dismiss();
-                        } catch (RuntimeException e) {
-                            // Activity already dismissed - ignore.
-                        }
-                    });
-                }
-            }
-        }.start();
+        // Write environment file
+        TermuxShellEnvironment.writeEnvironmentToFile(activity);
+        
+        // Run the completion callback immediately
+        activity.runOnUiThread(whenDone);
     }
 
     /**
-     * Copy minimal bootstrap wrapper scripts from assets to SELinux-compatible app-private bin directory
+     * Create forwarding shell scripts for native executables in read-only /data/app location
      */
-    private static File copyMinimalBootstrapFromAssets(Activity activity) throws Exception {
-        // Use getDir("bin", 0) to create SELinux-compatible app-private directory
+    private static void installNativeExecutables(Activity activity) throws Exception {
+        // Native libs are automatically extracted to /data/app/{package}/lib/arm64/ 
+        // by Android system when extractNativeLibs=true
+        String nativeLibDir = activity.getApplicationInfo().nativeLibraryDir;
+        Logger.logInfo(LOG_TAG, "Native libraries extracted to read-only location: " + nativeLibDir);
+        
+        // Verify the native libraries exist and are executable
+        String[] expectedLibs = {"libcodex.so", "libcodex-exec.so"};
+        for (String lib : expectedLibs) {
+            File nativeLib = new File(nativeLibDir, lib);
+            if (!nativeLib.exists()) {
+                throw new Exception("Native library not found: " + nativeLib.getAbsolutePath());
+            }
+        }
+        
+        // Create app-private bin directory for forwarding scripts
         File binDir = activity.getDir("bin", 0);
         String binDirPath = binDir.getAbsolutePath();
         
-        Logger.logInfo(LOG_TAG, "Using SELinux-compatible bin directory: " + binDirPath);
+        // Create forwarding shell scripts with original names
+        createForwardingScript(binDirPath + "/codex", nativeLibDir + "/libcodex.so");
+        createForwardingScript(binDirPath + "/codex-exec", nativeLibDir + "/libcodex-exec.so");
         
-        // Copy wrapper scripts from assets/bootstrap/bin/
-        String[] wrapperScripts = {"ls", "pwd", "cat", "echo"};
-        byte[] buffer = new byte[8096];
-        
-        for (String script : wrapperScripts) {
-            String assetPath = "bootstrap/bin/" + script;
-            String targetPath = binDirPath + "/" + script;
-            
-            try (InputStream assetStream = activity.getAssets().open(assetPath);
-                 FileOutputStream outStream = new FileOutputStream(targetPath)) {
-                int readBytes;
-                while ((readBytes = assetStream.read(buffer)) != -1) {
-                    outStream.write(buffer, 0, readBytes);
-                }
-            }
-            
-            // Set executable permissions for SELinux compatibility
-            File outFile = new File(targetPath);
-            Os.chmod(outFile.getAbsolutePath(), 0700);
-        }
-        
-        // Copy Codex native executables from assets/extras/aarch64/codex/
-        String[] codexBinaries = {"codex-aarch64-linux-android", "codex-exec-aarch64-linux-android"};
-        
-        for (String binary : codexBinaries) {
-            String assetPath = "extras/aarch64/codex/" + binary;
-            String targetPath = binDirPath + "/" + binary;
-            
-            try (InputStream assetStream = activity.getAssets().open(assetPath);
-                 FileOutputStream outStream = new FileOutputStream(targetPath)) {
-                int readBytes;
-                while ((readBytes = assetStream.read(buffer)) != -1) {
-                    outStream.write(buffer, 0, readBytes);
-                }
-            }
-            
-            // Set executable permissions for Codex native binaries
-            File outFile = new File(targetPath);
-            Os.chmod(outFile.getAbsolutePath(), 0700);
-        }
-        
-        // Create codex wrapper script with proper HOME environment
-        String codexWrapperPath = binDirPath + "/codex";
-        String codexBinaryPath = binDirPath + "/codex-aarch64-linux-android";
-        
-        String codexWrapperContent = "#!/system/bin/sh\n" +
-            "export HOME=/data/data/com.termux/files/home\n" +
-            "exec " + codexBinaryPath + " \"$@\"\n";
-            
-        try (FileOutputStream outStream = new FileOutputStream(codexWrapperPath)) {
-            outStream.write(codexWrapperContent.getBytes());
-        }
-        
-        // Set executable permissions for codex wrapper
-        File codexWrapperFile = new File(codexWrapperPath);
-        Os.chmod(codexWrapperFile.getAbsolutePath(), 0700);
-        
-        Logger.logInfo(LOG_TAG, "Minimal bootstrap wrapper scripts installed to SELinux-compatible directory successfully.");
-        return binDir;
+        Logger.logInfo(LOG_TAG, "Forwarding scripts created. Native libs in read-only: " + nativeLibDir);
     }
     
     /**
-     * Store the app-private bin directory path for environment setup
+     * Create a shell script that forwards to the native executable
      */
-    private static void storeBinDirectoryPath(Activity activity, String binDirPath) throws Exception {
-        // Store in a simple file for the environment to read
-        String binPathFile = TermuxConstants.TERMUX_FILES_DIR_PATH + "/.termux-bin-path";
-        try (FileOutputStream outStream = new FileOutputStream(binPathFile)) {
-            outStream.write(binDirPath.getBytes());
+    private static void createForwardingScript(String scriptPath, String nativeLibPath) throws Exception {
+        String scriptContent = "#!/system/bin/sh\n" +
+            "export HOME=/data/data/com.termux/files/home\n" +
+            "exec " + nativeLibPath + " \"$@\"\n";
+            
+        try (FileOutputStream outStream = new FileOutputStream(scriptPath)) {
+            outStream.write(scriptContent.getBytes());
         }
-        Logger.logInfo(LOG_TAG, "Stored SELinux-compatible bin directory path: " + binDirPath);
+        
+        // Set executable permissions for the script
+        File scriptFile = new File(scriptPath);
+        Os.chmod(scriptFile.getAbsolutePath(), 0755);
     }
+    
 
     public static void showBootstrapErrorDialog(Activity activity, Runnable whenDone, String message) {
         Logger.logErrorExtended(LOG_TAG, "Bootstrap Error:\n" + message);

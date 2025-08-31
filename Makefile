@@ -7,9 +7,14 @@ BUILD_TYPE ?= debug # debug|release
 APP_ID ?= com.termux
 MAIN_ACTIVITY ?= com.termux.app.TermuxActivity
 
-# Derived values
-APK_DIR := $(MODULE)/build/outputs/apk/$(BUILD_TYPE)
-APK_BASENAME := $(MODULE)-$(BUILD_TYPE).apk
+# Derived values - Use correct APK filenames based on build type
+ifeq ($(strip $(BUILD_TYPE)),debug)
+APK_DIR := $(MODULE)/build/outputs/apk/debug
+APK_BASENAME := termux-app_apt-android-7-debug_arm64-v8a.apk
+else
+APK_DIR := $(MODULE)/build/outputs/apk/release
+APK_BASENAME := termux-app_apt-android-7-release_universal.apk
+endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
 .PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor
@@ -32,10 +37,10 @@ help:
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 
 build:
-	@if [ "$(BUILD_TYPE)" = "debug" ]; then \
-		$(GRADLEW) :$(MODULE):assembleDebug; \
+	@if [ "$(strip $(BUILD_TYPE))" = "debug" ]; then \
+		$(GRADLEW) assembleDebug; \
 	else \
-		$(GRADLEW) :$(MODULE):assembleRelease; \
+		$(GRADLEW) assembleRelease; \
 	fi
 	@echo "Built: $(APK)"
 
