@@ -612,6 +612,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         } else {
             finishActivityIfNotFinishing();
         }
+        super.onBackPressed();
     }
 
     public void finishActivityIfNotFinishing() {
@@ -923,6 +924,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     public static void updateTermuxActivityStyling(Context context, boolean recreateActivity) {
         // Make sure that terminal styling is always applied.
         Intent stylingIntent = new Intent(TERMUX_ACTIVITY.ACTION_RELOAD_STYLE);
+        stylingIntent.setPackage(context.getPackageName());
         stylingIntent.putExtra(TERMUX_ACTIVITY.EXTRA_RECREATE_ACTIVITY, recreateActivity);
         context.sendBroadcast(stylingIntent);
     }
