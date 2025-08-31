@@ -22,7 +22,7 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 - **Packaging**: All executables packaged as `.so` files in `app/src/main/jniLibs/arm64-v8a/`
   - AI tools: `libcodex.so`, `libcodex-exec.so`
   - Package management: `libapt.so`, `libpkg.so`, `libdpkg.so`
-  - Development runtime: `libnode.so`, `libnpm.so`
+  - Development runtime: `libnode.so`, `libnpm.so`, `libnpx.so`
   - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so`
 - **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
 - **Access**: Shell aliases in `~/.profile` point directly to native library paths
@@ -120,6 +120,7 @@ After app launch, the following commands are available via aliases:
 ### Development Runtime
 - **`node`**: Node.js runtime for JavaScript development
 - **`npm`**: Node Package Manager for installing JavaScript packages
+- **`npx`**: Node Package Execute for running packages without installing
 
 ### Core Utilities
 - **`cat`**, **`echo`**, **`ls`**, **`pwd`**: Essential shell commands via native libraries
@@ -142,8 +143,10 @@ dpkg -l | grep python
 # Node.js development
 node --version
 npm --version
+npx --version
 npm init -y
 npm install express
+npx create-react-app myapp
 
 # Core utilities  
 ls -la
@@ -171,6 +174,7 @@ alias dpkg='/data/app/{hash}/lib/arm64/libdpkg.so'
 # Development Runtime - Node.js and NPM
 alias node='/data/app/{hash}/lib/arm64/libnode.so'
 alias npm='/data/app/{hash}/lib/arm64/libnpm.so'
+alias npx='/data/app/{hash}/lib/arm64/libnpx.so'
 
 # Core Utilities - Essential commands via native libraries
 alias cat='/data/app/{hash}/lib/arm64/libcat.so'
@@ -189,6 +193,7 @@ $PREFIX/bin/ls -> /data/app/{hash}/lib/arm64/libls.so
 $PREFIX/bin/pwd -> /data/app/{hash}/lib/arm64/libpwd.so
 $PREFIX/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
 $PREFIX/bin/npm -> /data/app/{hash}/lib/arm64/libnpm.so
+$PREFIX/bin/npx -> /data/app/{hash}/lib/arm64/libnpx.so
 ```
 
 ## Security & Compliance
@@ -276,6 +281,7 @@ codex --help         # Should show AI CLI help
 codex-exec --help    # Should show non-interactive help
 node --version       # Should show Node.js version
 npm --version        # Should show NPM version
+npx --version        # Should show NPX version
 ```
 
 ### Build Verification
