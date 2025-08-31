@@ -95,6 +95,11 @@ final class TermuxInstaller {
             return;
         }
 
+        // Create basic directory structure first
+        FileUtils.createDirectoryFile(TERMUX_PREFIX_DIR_PATH);
+        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_HOME_DIR_PATH);
+        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
+        
         // Place native executables in /data/app read-only location
         Logger.logInfo(LOG_TAG, "Installing native executables to /data/app directory.");
         
@@ -106,11 +111,6 @@ final class TermuxInstaller {
             return;
         }
         
-        // Create basic directory structure
-        FileUtils.createDirectoryFile(TERMUX_PREFIX_DIR_PATH);
-        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_HOME_DIR_PATH);
-        FileUtils.createDirectoryFile(TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
-        
         // Write environment file
         TermuxShellEnvironment.writeEnvironmentToFile(activity);
         
@@ -119,7 +119,7 @@ final class TermuxInstaller {
     }
 
     /**
-     * Create forwarding shell scripts for native executables in read-only /data/app location
+     * Verify native executables are extracted and store paths for alias setup
      */
     private static void installNativeExecutables(Activity activity) throws Exception {
         // Native libs are automatically extracted to /data/app/{package}/lib/arm64/ 
@@ -136,32 +136,35 @@ final class TermuxInstaller {
             }
         }
         
-        // Create app-private bin directory for forwarding scripts
-        File binDir = activity.getDir("bin", 0);
-        String binDirPath = binDir.getAbsolutePath();
+        // Store native lib paths for alias setup in shell environment
+        storeNativeLibPaths(activity, nativeLibDir);
         
-        // Create forwarding shell scripts with original names
-        createForwardingScript(binDirPath + "/codex", nativeLibDir + "/libcodex.so");
-        createForwardingScript(binDirPath + "/codex-exec", nativeLibDir + "/libcodex-exec.so");
-        
-        Logger.logInfo(LOG_TAG, "Forwarding scripts created. Native libs in read-only: " + nativeLibDir);
+        Logger.logInfo(LOG_TAG, "Native executables verified. Aliases will point to: " + nativeLibDir);
     }
     
     /**
-     * Create a shell script that forwards to the native executable
+     * Store native library paths for alias setup
      */
-    private static void createForwardingScript(String scriptPath, String nativeLibPath) throws Exception {
-        String scriptContent = "#!/system/bin/sh\n" +
-            "export HOME=/data/data/com.termux/files/home\n" +
-            "exec " + nativeLibPath + " \"$@\"\n";
+    private static void storeNativeLibPaths(Activity activity, String nativeLibDir) throws Exception {
+        // Create shell profile with aliases for native executables
+        String profileFile = TermuxConstants.TERMUX_HOME_DIR_PATH + "/.profile";
+        String profileContent = "# Termux shell profile\n" +
+            "export HOME=" + TermuxConstants.TERMUX_HOME_DIR_PATH + "\n" +
+            "export PREFIX=" + TermuxConstants.TERMUX_PREFIX_DIR_PATH + "\n" +
+            "\n" +
+            "# Aliases for native executables in read-only /data/app location\n" +
+            "alias codex='" + nativeLibDir + "/libcodex.so'\n" +
+            "alias codex-exec='" + nativeLibDir + "/libcodex-exec.so'\n";
             
-        try (FileOutputStream outStream = new FileOutputStream(scriptPath)) {
-            outStream.write(scriptContent.getBytes());
+        try (FileOutputStream outStream = new FileOutputStream(profileFile)) {
+            outStream.write(profileContent.getBytes());
         }
         
-        // Set executable permissions for the script
-        File scriptFile = new File(scriptPath);
-        Os.chmod(scriptFile.getAbsolutePath(), 0755);
+        // Set readable permissions
+        File profile = new File(profileFile);
+        Os.chmod(profile.getAbsolutePath(), 0644);
+        
+        Logger.logInfo(LOG_TAG, "Created .profile with aliases for native executables: " + nativeLibDir);
     }
     
 

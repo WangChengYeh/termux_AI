@@ -80,13 +80,9 @@ public class TermuxShellEnvironment extends AndroidShellEnvironment {
         environment.put(ENV_HOME, TermuxConstants.TERMUX_HOME_DIR_PATH);
         environment.put(ENV_PREFIX, TermuxConstants.TERMUX_PREFIX_DIR_PATH);
 
-        // Use Android native system binaries + forwarding scripts
+        // Use Android native system binaries only
         environment.put(ENV_TMPDIR, TermuxConstants.TERMUX_TMP_PREFIX_DIR_PATH);
-        
-        // Add app-private bin directory to PATH for forwarding scripts
-        // Scripts forward to read-only native libs in /data/app/.../lib/arm64/
-        String appBinPath = currentPackageContext.getDir("bin", 0).getAbsolutePath();
-        environment.put(ENV_PATH, appBinPath + ":/system/bin");
+        environment.put(ENV_PATH, "/system/bin");
         environment.remove(ENV_LD_LIBRARY_PATH);
 
         return environment;
