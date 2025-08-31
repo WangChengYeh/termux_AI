@@ -91,6 +91,12 @@ android {
             storePassword 'xrj45yWGLbsO7W0v'
             keyPassword 'xrj45yWGLbsO7W0v'
         }
+        release {
+            storeFile file('release.jks')
+            keyAlias 'release'
+            storePassword 'termux-ai-2025'
+            keyPassword 'termux-ai-2025'
+        }
     }
 
     buildTypes {
@@ -98,6 +104,7 @@ android {
             minifyEnabled true
             shrinkResources false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
 
         debug {
