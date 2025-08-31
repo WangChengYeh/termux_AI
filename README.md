@@ -19,7 +19,10 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 ## Technical Architecture
 
 ### Native Library Integration
-- **Packaging**: Codex executables packaged as `.so` files in `app/src/main/jniLibs/arm64-v8a/`
+- **Packaging**: All executables packaged as `.so` files in `app/src/main/jniLibs/arm64-v8a/`
+  - AI tools: `libcodex.so`, `libcodex-exec.so`
+  - Package management: `libapt.so`, `libpkg.so`, `libdpkg.so`
+  - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so`
 - **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
 - **Access**: Shell aliases in `~/.profile` point directly to native library paths
 - **Security**: W^X compliant - executables in read-only system-managed location
@@ -37,7 +40,7 @@ private static void installNativeExecutables(Activity activity) throws Exception
 ```
 
 ### Android Compatibility
-- **minSdk**: 33 (Android 13)
+- **minSdk**: 34 (Android 14+)
 - **targetSdk**: 35 (Android 14+)  
 - **Architecture**: ARM64 (`arm64-v8a`) only
 - **Distribution**: GitHub Releases (APK)
@@ -104,21 +107,37 @@ registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
 
 After app launch, the following commands are available via aliases:
 
+### AI Tools
 - **`codex`**: AI CLI for interactive AI assistance
 - **`codex-exec`**: Non-interactive AI command execution  
+
+### Native Package Tools (APT Integration)
+- **`apt`**: Package manager for installing additional ARM64 packages
+- **`pkg`**: Simplified package management wrapper
+- **`dpkg`**: Debian package management utilities
+
+### Core Utilities
+- **`cat`**, **`echo`**, **`ls`**, **`pwd`**: Essential shell commands via native libraries
 
 Example usage:
 ```bash
 # Load aliases (auto-loaded in new shells)
 source ~/.profile
 
-# Get help
+# AI assistance
 codex --help
-codex-exec --help
-
-# Use AI assistance  
 codex "explain this command: ls -la"
-codex exec "write a shell script to backup files"
+codex-exec "write a shell script to backup files"
+
+# Package management
+apt update && apt upgrade
+pkg install python
+dpkg -l | grep python
+
+# Core utilities  
+ls -la
+cat file.txt
+echo "Hello World"
 ```
 
 ## Alias Configuration
@@ -129,9 +148,30 @@ The app automatically creates `~/.profile` with direct aliases:
 export HOME=/data/data/com.termux/files/home
 export PREFIX=/data/data/com.termux/files/usr
 
-# Aliases for native executables in read-only /data/app location
+# AI Tools - Aliases for native executables in read-only /data/app location
 alias codex='/data/app/{hash}/lib/arm64/libcodex.so'
 alias codex-exec='/data/app/{hash}/lib/arm64/libcodex-exec.so'
+
+# Package Management - Native APT integration
+alias apt='/data/app/{hash}/lib/arm64/libapt.so'
+alias pkg='/data/app/{hash}/lib/arm64/libpkg.so' 
+alias dpkg='/data/app/{hash}/lib/arm64/libdpkg.so'
+
+# Core Utilities - Essential commands via native libraries
+alias cat='/data/app/{hash}/lib/arm64/libcat.so'
+alias echo='/data/app/{hash}/lib/arm64/libecho.so'
+alias ls='/data/app/{hash}/lib/arm64/libls.so'
+alias pwd='/data/app/{hash}/lib/arm64/libpwd.so'
+```
+
+### Native Library Symlinks
+Core utilities are also available via traditional symlinks in the bootstrap directory:
+```bash
+# Bootstrap symlinks (for compatibility)
+$PREFIX/bin/cat -> /data/app/{hash}/lib/arm64/libcat.so
+$PREFIX/bin/echo -> /data/app/{hash}/lib/arm64/libecho.so  
+$PREFIX/bin/ls -> /data/app/{hash}/lib/arm64/libls.so
+$PREFIX/bin/pwd -> /data/app/{hash}/lib/arm64/libpwd.so
 ```
 
 ## Security & Compliance
@@ -159,14 +199,18 @@ alias codex-exec='/data/app/{hash}/lib/arm64/libcodex-exec.so'
 
 ## Differences from Standard Termux
 
-### No Package Manager
-- **Traditional Termux**: Uses `pkg install` with APT package manager
-- **Termux AI**: Direct native executable integration, no package installation
+### Hybrid Package Management
+- **Traditional Termux**: Uses `pkg install` with full APT bootstrap installation
+- **Termux AI**: Native library integration + selective APT functionality
+  - Core tools (codex, cat, ls, etc.) as native libraries
+  - APT/pkg available for additional packages when needed
+  - Best of both worlds: instant availability + extensibility
 
-### Simplified Environment  
-- **PATH**: Only `/system/bin` (no app-private bin directory)
-- **Executables**: Accessed via aliases to read-only native library locations
-- **Dependencies**: Self-contained native binaries with minimal system dependencies
+### Optimized Environment  
+- **PATH**: `/system/bin` + native library aliases
+- **Core Executables**: Direct access via read-only native library locations
+- **Additional Packages**: Available through integrated APT when needed
+- **Dependencies**: Self-contained for core functionality, extensible for advanced use
 
 ### Enhanced Security
 - **Execution**: Read-only native libraries prevent runtime modification
@@ -223,24 +267,32 @@ make logs           # Monitor app behavior
 ```
 
 ## Known Limitations
-- **No package manager**: Traditional `pkg install` not available
-- **ARM64 only**: Other architectures not supported
-- **Minimal environment**: Only system binaries in PATH
-- **No Python runtime**: Codex executables are self-contained
+- **ARM64 only**: Other architectures not supported  
+- **Android 14+ required**: Minimum API level 34
+- **Selective packaging**: Only essential packages included as native libraries
+- **Bootstrap-free**: Traditional Termux bootstrap replaced with direct integration
 
 ## Project Status
 ✅ **Completed**:
 - Bootstrap removal and native executable integration
-- Android 14+ compatibility (foreground services, receivers)
+- Android 14+ compatibility (foreground services, receivers)  
 - Read-only `/data/app` placement with W^X compliance
 - Shell alias configuration for seamless access
 - Makefile build system with ARM64 verification
+- Hybrid package management (native libraries + selective APT)
 
 🎯 **Current Implementation**:
 - Native Codex CLI available immediately after app launch
+- Integrated APT/pkg package management for extensibility
+- Core utilities (cat, ls, echo, pwd) as native libraries
 - No internet required for core AI functionality  
 - Secure read-only executable placement
 - Compatible with latest Android security policies
+
+### Package Integration Details
+- **Core tools**: Embedded as native libraries for instant access
+- **APT integration**: Package manager available for additional software
+- **Hybrid approach**: Performance + flexibility without traditional bootstrap overhead
 
 ## License
 Follows upstream Termux licensing. See individual component licenses for native binaries.
