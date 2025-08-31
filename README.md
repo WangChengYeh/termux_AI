@@ -2,7 +2,7 @@
 
 A modern fork of `termux/termux-app` that eliminates traditional package bootstrapping in favor of direct native executable integration. This implementation places Codex AI tools in Android's read-only `/data/app` directory for W^X (Write XOR Execute) compliance and enhanced security.
 
-**Key Innovation**: No bootstrap installation required - native executables are automatically extracted by Android to read-only system locations and accessed via shell aliases.
+**Key Innovation**: No bootstrap installation required - native executables are automatically extracted by Android to read-only system locations and accessed via symbolic links.
 
 ![Termux AI in action](termux_ai_screenshot.png)
 *Termux AI running Codex CLI with interactive AI assistance*
@@ -13,7 +13,7 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 - **Bootstrap-free architecture**: Eliminates traditional Termux package installation
 - **Native executable integration**: Uses Android's `extractNativeLibs=true` mechanism  
 - **Read-only security**: Executables reside in `/data/app/.../lib/arm64/` (system-managed, non-writable)
-- **Direct access**: Shell aliases provide seamless command execution
+- **Direct access**: Symbolic links provide seamless command execution
 - **Android 14+ compatibility**: Full support for latest Android security requirements
 
 ## Technical Architecture
@@ -28,18 +28,18 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
   - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so` (from coreutils)
 - **APK Integration**: Gradle packages `.so` files into APK with `extractNativeLibs=true`
 - **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
-- **Access**: Shell aliases in `~/.profile` point directly to native library paths
+- **Access**: Symbolic links in `/usr/bin` and `/usr/lib` point to native library paths
 - **Security**: W^X compliant - executables in read-only system-managed location
 
 ### Bootstrap Replacement
 Traditional Termux bootstrap process has been completely replaced:
 ```java
 // Before: Complex zip extraction and package installation
-// After: Simple native executable verification and alias setup
+// After: Native executable verification and symbolic link creation
 private static void installNativeExecutables(Activity activity) throws Exception {
     String nativeLibDir = activity.getApplicationInfo().nativeLibraryDir;
-    // Verify extracted libraries exist
-    // Create .profile with aliases
+    // Create symbolic links for all native libraries
+    createSymbolicLinks(activity, nativeLibDir);
 }
 ```
 
@@ -156,8 +156,8 @@ make run             # Launch app
 4. **Dependency Resolution**: Include required shared libraries for runtime dependencies
 5. **Build Integration**: Gradle packages `.so` files into APK with `extractNativeLibs=true`
 6. **Install time**: Android extracts libraries to `/data/app/{hash}/lib/arm64/` (read-only)
-7. **First run**: App creates `~/.profile` with aliases pointing to extracted libraries
-8. **Runtime**: Users execute commands via aliases that resolve to native library paths
+7. **First run**: App creates symbolic links in `/usr/bin` and `/usr/lib` pointing to extracted libraries
+8. **Runtime**: Users execute commands via symbolic links that resolve to native library paths
 
 ### Android 14+ Compatibility  
 Fixed multiple compatibility issues for modern Android:
@@ -178,7 +178,7 @@ registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
 
 ## Available Commands
 
-After app launch, the following commands are available via aliases:
+After app launch, the following commands are available via symbolic links:
 
 ### AI Tools
 - **`codex`**: AI CLI for interactive AI assistance
@@ -199,9 +199,7 @@ After app launch, the following commands are available via aliases:
 
 Example usage:
 ```bash
-# Load aliases (auto-loaded in new shells)
-source ~/.profile
-
+# Commands are available directly in PATH
 # AI assistance
 codex --help
 codex "explain this command: ls -la"
@@ -226,46 +224,41 @@ cat file.txt
 echo "Hello World"
 ```
 
-## Alias Configuration
+## Symbolic Link System
 
-The app automatically creates `~/.profile` with direct aliases:
+The app automatically creates a comprehensive symbolic link system:
+
+### Executable Symlinks (`/usr/bin`)
+```bash
+# AI Tools
+/usr/bin/codex -> /data/app/{hash}/lib/arm64/libcodex.so
+/usr/bin/codex-exec -> /data/app/{hash}/lib/arm64/libcodex-exec.so
+
+# Package Management
+/usr/bin/apt -> /data/app/{hash}/lib/arm64/libapt.so
+/usr/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
+```
+
+### Library Symlinks (`/usr/lib`)
+```bash
+# Core libraries for dependency resolution
+/usr/lib/libandroid-glob.so -> /data/app/{hash}/lib/arm64/libandroid-glob.so
+/usr/lib/libapt-private.so -> /data/app/{hash}/lib/arm64/libapt-private.so
+/usr/lib/libapt-pkg.so -> /data/app/{hash}/lib/arm64/libapt-pkg.so
+
+# Zlib with versioned symlinks for Node.js compatibility
+/usr/lib/libz.so -> /data/app/{hash}/lib/arm64/libzlib.so
+/usr/lib/libz.so.1 -> /usr/lib/libz.so          # Versioned symlink
+/usr/lib/libz.so.1.3.1 -> /usr/lib/libz.so      # Full version symlink
+```
+
+### Environment Configuration
 ```bash
 # Termux shell profile
 export HOME=/data/data/com.termux/files/home
 export PREFIX=/data/data/com.termux/files/usr
-
-# AI Tools - Aliases for native executables in read-only /data/app location
-alias codex='/data/app/{hash}/lib/arm64/libcodex.so'
-alias codex-exec='/data/app/{hash}/lib/arm64/libcodex-exec.so'
-
-# Package Management - Native APT integration
-alias apt='/data/app/{hash}/lib/arm64/libapt.so'
-alias pkg='/data/app/{hash}/lib/arm64/libpkg.so' 
-alias dpkg='/data/app/{hash}/lib/arm64/libdpkg.so'
-
-# Development Runtime - Node.js and NPM
-alias node='/data/app/{hash}/lib/arm64/libnode.so'
-alias npm='/data/app/{hash}/lib/arm64/libnpm.so'
-alias npx='/data/app/{hash}/lib/arm64/libnpx.so'
-
-# Core Utilities - Essential commands via native libraries
-alias cat='/data/app/{hash}/lib/arm64/libcat.so'
-alias echo='/data/app/{hash}/lib/arm64/libecho.so'
-alias ls='/data/app/{hash}/lib/arm64/libls.so'
-alias pwd='/data/app/{hash}/lib/arm64/libpwd.so'
-```
-
-### Native Library Symlinks
-Core utilities and development tools are also available via traditional symlinks in the bootstrap directory:
-```bash
-# Bootstrap symlinks (for compatibility)
-$PREFIX/bin/cat -> /data/app/{hash}/lib/arm64/libcat.so
-$PREFIX/bin/echo -> /data/app/{hash}/lib/arm64/libecho.so  
-$PREFIX/bin/ls -> /data/app/{hash}/lib/arm64/libls.so
-$PREFIX/bin/pwd -> /data/app/{hash}/lib/arm64/libpwd.so
-$PREFIX/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
-$PREFIX/bin/npm -> /data/app/{hash}/lib/arm64/libnpm.so
-$PREFIX/bin/npx -> /data/app/{hash}/lib/arm64/libnpx.so
+export PATH=/data/data/com.termux/files/usr/bin:$PATH
+export LD_LIBRARY_PATH=/data/app/{hash}/lib/arm64:/data/data/com.termux/files/usr/lib:$LD_LIBRARY_PATH
 ```
 
 ## Security & Compliance
@@ -301,10 +294,11 @@ $PREFIX/bin/npx -> /data/app/{hash}/lib/arm64/libnpx.so
   - Best of both worlds: instant availability + extensibility
 
 ### Optimized Environment  
-- **PATH**: `/system/bin` + native library aliases
-- **Core Executables**: Direct access via read-only native library locations
+- **PATH**: `/usr/bin:/system/bin` with symbolic links to native executables
+- **LD_LIBRARY_PATH**: Native lib directory + `/usr/lib` for dependency resolution
+- **Core Executables**: Direct access via symbolic links to read-only locations
+- **Versioned Libraries**: Symlinks handle version compatibility (e.g., libz.so.1)
 - **Additional Packages**: Available through integrated APT when needed
-- **Dependencies**: Self-contained for core functionality, extensible for advanced use
 
 ### Enhanced Security
 - **Execution**: Read-only native libraries prevent runtime modification
@@ -414,7 +408,6 @@ make install run
 # Connect to app and test functionality
 adb shell run-as com.termux
 cd /data/data/com.termux/files/home
-source .profile
 codex --help         # Should show AI CLI help
 codex-exec --help    # Should show non-interactive help
 node --version       # Should show Node.js version
@@ -440,7 +433,7 @@ make logs           # Monitor app behavior
 - Bootstrap removal and native executable integration
 - Android 14+ compatibility (foreground services, receivers)  
 - Read-only `/data/app` placement with W^X compliance
-- Shell alias configuration for seamless access
+- Symbolic link system for seamless command execution
 - Makefile build system with ARM64 verification
 - Hybrid package management (native libraries + selective APT)
 
