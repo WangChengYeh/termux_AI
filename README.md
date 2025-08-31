@@ -4,6 +4,9 @@ A modern fork of `termux/termux-app` that eliminates traditional package bootstr
 
 **Key Innovation**: No bootstrap installation required - native executables are automatically extracted by Android to read-only system locations and accessed via shell aliases.
 
+![Termux AI in action](termux_ai_screenshot.png)
+*Termux AI running Codex CLI with interactive AI assistance*
+
 Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are not supported.
 
 ## Implementation Overview
