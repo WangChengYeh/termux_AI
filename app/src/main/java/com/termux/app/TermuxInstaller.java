@@ -187,7 +187,9 @@ final class TermuxInstaller {
             {"libicutu771.so", "libicutu.so.77"},
             {"libicuuc771.so", "libicuuc.so.77"},
             {"libc++_shared_v28.so", "libc++_shared_v28.so"},
-            {"libzstd1.so", "libzstd.so.1"}
+            {"libzstd1.so", "libzstd.so.1"},
+            {"libiconv.so", "libiconv.so"},
+            {"libxxhash0.so", "libxxhash.so.0"}
         };
         
         // Define additional symlinks that point to existing libraries  
