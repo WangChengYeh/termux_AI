@@ -162,6 +162,8 @@ final class TermuxInstaller {
             {"libc++_shared.so", "libc++_shared.so"},
             {"libzlib.so", "libz.so"},
             {"libz.so", "libz.so"},
+            {"libz1.so", "libz.so.1"},
+            {"libz131.so", "libz.so.1.3.1"},
             {"libcares.so", "libcares.so"},
             {"libbz2.so", "libbz2.so"},
             {"libbz2.so", "libbz2.so.1.0"},
@@ -172,35 +174,35 @@ final class TermuxInstaller {
             {"libssl.so", "libssl.so"},
             {"libssl.so", "libssl.so.3"},
             {"liblzma.so", "liblzma.so"},
-            {"liblzma.so", "liblzma.so.5"},
-            {"liblzma.so.5.8.1", "liblzma.so.5.8.1"},
-            {"libicudata.so.77.1", "libicudata.so.77.1"},
-            {"libicui18n.so.77.1", "libicui18n.so.77.1"},
-            {"libicuio.so.77.1", "libicuio.so.77.1"},
-            {"libicutest.so.77.1", "libicutest.so.77.1"},
-            {"libicutu.so.77.1", "libicutu.so.77.1"},
-            {"libicuuc.so.77.1", "libicuuc.so.77.1"},
-            {"libicudata.so.77.1", "libicudata.so.77"},
-            {"libicui18n.so.77.1", "libicui18n.so.77"},
-            {"libicuio.so.77.1", "libicuio.so.77"},
-            {"libicutest.so.77.1", "libicutest.so.77"},
-            {"libicutu.so.77.1", "libicutu.so.77"},
-            {"libicuuc.so.77.1", "libicuuc.so.77"},
+            {"liblzma5.so", "liblzma.so.5"},
+            {"liblzma581.so", "liblzma.so.5.8.1"},
+            {"libicudata771.so", "libicudata.so.77.1"},
+            {"libicui18n771.so", "libicui18n.so.77.1"},
+            {"libicuio771.so", "libicuio.so.77.1"},
+            {"libicutest771.so", "libicutest.so.77.1"},
+            {"libicutu771.so", "libicutu.so.77.1"},
+            {"libicuuc771.so", "libicuuc.so.77.1"},
+            {"libicudata771.so", "libicudata.so.77"},
+            {"libicui18n771.so", "libicui18n.so.77"},
+            {"libicuio771.so", "libicuio.so.77"},
+            {"libicutest771.so", "libicutest.so.77"},
+            {"libicutu771.so", "libicutu.so.77"},
+            {"libicuuc771.so", "libicuuc.so.77"},
             {"libc++_shared_v28.so", "libc++_shared_v28.so"},
-            {"libzstd.so.1", "libzstd.so.1"}
+            {"libzstd1.so", "libzstd.so.1"}
         };
         
-        // Define additional symlinks that point to existing libraries
+        // Define additional symlinks that point to existing libraries  
         String[][] additionalSymlinks = {
-            {"libz.so", "libz.so.1"},      // Node.js needs libz.so.1 -> point to libz.so
-            {"libz.so", "libz.so.1.3.1"},   // Full version symlink
-            {"liblzma.so.5.8.1", "liblzma.so.5"},  // lzma version symlink
-            {"libicudata.so.77.1", "libicudata.so.77"},  // ICU data version symlink
-            {"libicui18n.so.77.1", "libicui18n.so.77"},  // ICU i18n version symlink
-            {"libicuio.so.77.1", "libicuio.so.77"},      // ICU io version symlink
-            {"libicutest.so.77.1", "libicutest.so.77"},  // ICU test version symlink
-            {"libicutu.so.77.1", "libicutu.so.77"},      // ICU tu version symlink
-            {"libicuuc.so.77.1", "libicuuc.so.77"}       // ICU uc version symlink
+            {"libz1.so", "libz.so.1"},         // Node.js needs libz.so.1
+            {"libz131.so", "libz.so.1.3.1"},  // Full version symlink
+            {"liblzma581.so", "liblzma.so.5"}, // lzma version symlink
+            {"libicudata771.so", "libicudata.so.77"},  // ICU data version symlink
+            {"libicui18n771.so", "libicui18n.so.77"},  // ICU i18n version symlink
+            {"libicuio771.so", "libicuio.so.77"},      // ICU io version symlink
+            {"libicutest771.so", "libicutest.so.77"},  // ICU test version symlink
+            {"libicutu771.so", "libicutu.so.77"},      // ICU tu version symlink
+            {"libicuuc771.so", "libicuuc.so.77"}       // ICU uc version symlink
         };
         
         // Create symlinks for executables in /usr/bin

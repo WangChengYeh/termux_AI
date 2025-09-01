@@ -6,7 +6,7 @@
 build/
 release/
 *.apk
-*.so
+# *.so
 .externalNativeBuild
 .cxx
 *.zip
