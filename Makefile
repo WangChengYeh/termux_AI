@@ -109,6 +109,7 @@ doctor:
 # SOP Variables
 PACKAGES_DIR ?= packages
 JNILIBS_DIR ?= app/src/main/jniLibs/arm64-v8a
+ASSETS_DIR ?= app/src/main/assets/termux
 PACKAGE_NAME ?= 
 VERSION ?= 
 LETTER ?= 
@@ -186,9 +187,15 @@ sop-analyze:
 	@echo "Libraries in /usr/lib:"
 	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/lib/*" -name "*.so*" || echo "  (none found)"
 	@echo ""
-	@echo "File types:"
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -path "*/usr/bin/*" -o -path "*/usr/lib/*.so*" -type f | while read file; do \
-		echo "  $$(basename $$file): $$(file $$file | cut -d: -f2)"; \
+	@echo "File types (determines integration method):"
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -path "*/usr/bin/*" -type f | while read file; do \
+		filetype=$$(file "$$file" | cut -d: -f2); \
+		filename=$$(basename "$$file"); \
+		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
+			echo "  $$filename: $$filetype → NATIVE (jniLibs)"; \
+		else \
+			echo "  $$filename: $$filetype → SCRIPT (assets)"; \
+		fi; \
 	done 2>/dev/null || true
 
 sop-copy:
@@ -198,23 +205,39 @@ sop-copy:
 	fi
 	@echo "📋 SOP Step 5: Copy $(PACKAGE_NAME) files to Android APK structure"
 	@mkdir -p $(JNILIBS_DIR)
-	@# Copy executables with lib prefix and .so extension
+	@mkdir -p $(ASSETS_DIR)/usr/bin
+	@mkdir -p $(ASSETS_DIR)/usr/lib
+	@# Copy files based on type (native vs script)
 	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
 		filename=$$(basename "$$file"); \
-		target="$(JNILIBS_DIR)/lib$$filename.so"; \
-		echo "  Copying executable: $$filename -> lib$$filename.so"; \
-		cp "$$file" "$$target"; \
-		chmod +x "$$target"; \
-	done || true
-	@# Copy libraries keeping original names
+		filetype=$$(file "$$file" | cut -d: -f2); \
+		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
+			target="$(JNILIBS_DIR)/lib$$filename.so"; \
+			echo "  NATIVE: $$filename -> lib$$filename.so (jniLibs)"; \
+			cp "$$file" "$$target"; \
+			chmod +x "$$target"; \
+		else \
+			target="$(ASSETS_DIR)/usr/bin/$$filename"; \
+			echo "  SCRIPT: $$filename -> assets/termux/usr/bin/$$filename"; \
+			cp "$$file" "$$target"; \
+			chmod +x "$$target"; \
+		fi; \
+	done 2>/dev/null || true
+	@# Copy shared libraries keeping original names
 	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/lib/*" -name "*.so*" | while read file; do \
 		filename=$$(basename "$$file"); \
 		target="$(JNILIBS_DIR)/$$filename"; \
-		echo "  Copying library: $$filename"; \
+		echo "  LIBRARY: $$filename -> jniLibs/"; \
 		cp "$$file" "$$target"; \
 		chmod +x "$$target"; \
 	done || true
-	@echo "Files copied to: $(JNILIBS_DIR)/"
+	@# Copy supporting directories for scripts (like node_modules)
+	@if [ -d "$(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/data/data/com.termux/files/usr/lib/node_modules" ]; then \
+		echo "  DEPENDENCIES: node_modules -> assets/termux/usr/lib/"; \
+		cp -r "$(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/data/data/com.termux/files/usr/lib/node_modules" \
+		      "$(ASSETS_DIR)/usr/lib/"; \
+	fi
+	@echo "Files copied to jniLibs and assets based on type"
 
 sop-update:
 	@if [ -z "$(PACKAGE_NAME)" ]; then \
@@ -222,20 +245,39 @@ sop-update:
 		exit 1; \
 	fi
 	@echo "⚙️ SOP Step 6: Update TermuxInstaller.java for $(PACKAGE_NAME)"
-	@# Check if there are executables that need TermuxInstaller.java updates
-	@EXECUTABLES=$$(find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | wc -l | tr -d ' '); \
-	if [ "$$EXECUTABLES" -gt 0 ]; then \
-		echo "Found $$EXECUTABLES executable(s). Manual TermuxInstaller.java update required:"; \
-		find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
-			filename=$$(basename "$$file"); \
+	@# Check for native executables that need TermuxInstaller.java updates
+	@NATIVE_COUNT=0; \
+	SCRIPT_COUNT=0; \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+		filetype=$$(file "$$file" | cut -d: -f2); \
+		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
+			NATIVE_COUNT=$$((NATIVE_COUNT + 1)); \
+		else \
+			SCRIPT_COUNT=$$((SCRIPT_COUNT + 1)); \
+		fi; \
+	done 2>/dev/null; \
+	echo "Analysis: Found native and script executables"; \
+	echo ""; \
+	echo "NATIVE executables (require TermuxInstaller.java entries):"; \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+		filename=$$(basename "$$file"); \
+		filetype=$$(file "$$file" | cut -d: -f2); \
+		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
 			echo "  {\"lib$$filename.so\", \"$$filename\"},"; \
-		done; \
-		echo ""; \
-		echo "Add these entries to the executables array in:"; \
-		echo "  app/src/main/java/com/termux/app/TermuxInstaller.java"; \
-	else \
-		echo "No executables found. No TermuxInstaller.java update needed (libraries only)."; \
-	fi
+		fi; \
+	done 2>/dev/null || true; \
+	echo ""; \
+	echo "SCRIPT files (handled automatically by asset extraction):"; \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+		filename=$$(basename "$$file"); \
+		filetype=$$(file "$$file" | cut -d: -f2); \
+		if ! echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
+			echo "  $$filename (no TermuxInstaller.java entry needed)"; \
+		fi; \
+	done 2>/dev/null || true; \
+	echo ""; \
+	echo "Add ONLY the native executable entries to:"; \
+	echo "  app/src/main/java/com/termux/app/TermuxInstaller.java"
 
 sop-build:
 	@echo "🔨 SOP Step 7: Build and test integration"

@@ -141,35 +141,54 @@ find nodejs-extract -type f -path "*/usr/bin/*"
 # Find all libraries in /usr/lib
 find nodejs-extract -type f -path "*/usr/lib/*" -name "*.so*"
 
-# Check file types to verify ARM64 ELF binaries
+# Check file types to determine native executables vs scripts
 file nodejs-extract/data/data/com.termux/files/usr/bin/node
-# Expected: ARM aarch64 ELF 64-bit LSB pie executable
+# Expected outputs:
+# - Native: ARM aarch64 ELF 64-bit LSB pie executable
+# - Script: ASCII text executable, or symbolic link
 
-# Check library dependencies
+# For native executables, check library dependencies
 readelf -d nodejs-extract/data/data/com.termux/files/usr/bin/node | grep NEEDED
+
+# Identify file types for proper handling
+for file in nodejs-extract/data/data/com.termux/files/usr/bin/*; do
+  echo "$(basename "$file"): $(file "$file" | cut -d: -f2)"
+done
 ```
 
 ### Step 5: Copy Files to Android APK Structure
 
-Copy executables and libraries following Android JNI naming conventions:
+Copy files based on their type - native executables use Android JNI naming, scripts are copied directly:
 
-#### 5.1 Copy Executables to jniLibs
+#### 5.1 Copy Native Executables to jniLibs
 ```bash
 # Create jniLibs directory
 mkdir -p app/src/main/jniLibs/arm64-v8a
 
-# Copy executables with lib prefix and .so extension (Android naming convention)
+# For NATIVE EXECUTABLES (ARM64 ELF binaries):
+# Copy with lib prefix and .so extension (Android naming convention)
 cp nodejs-extract/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
-cp nodejs-extract/data/data/com.termux/files/usr/bin/npm app/src/main/jniLibs/arm64-v8a/libnpm.so
-cp nodejs-extract/data/data/com.termux/files/usr/bin/npx app/src/main/jniLibs/arm64-v8a/libnpx.so
-
-# Set executable permissions (required for Android)
 chmod +x app/src/main/jniLibs/arm64-v8a/libnode.so
-chmod +x app/src/main/jniLibs/arm64-v8a/libnpm.so
-chmod +x app/src/main/jniLibs/arm64-v8a/libnpx.so
 ```
 
-#### 5.2 Copy Libraries to jniLibs
+#### 5.2 Copy Scripts and Non-Native Files to Assets
+```bash
+# Create assets directory structure
+mkdir -p app/src/main/assets/termux/usr/bin
+
+# For SCRIPTS, SYMBOLIC LINKS, and NON-NATIVE FILES:
+# Copy directly maintaining directory structure (no renaming needed)
+cp nodejs-extract/data/data/com.termux/files/usr/bin/npm app/src/main/assets/termux/usr/bin/npm
+cp nodejs-extract/data/data/com.termux/files/usr/bin/npx app/src/main/assets/termux/usr/bin/npx
+chmod +x app/src/main/assets/termux/usr/bin/npm
+chmod +x app/src/main/assets/termux/usr/bin/npx
+
+# Copy entire supporting directories for script dependencies
+cp -r nodejs-extract/data/data/com.termux/files/usr/lib/node_modules \
+      app/src/main/assets/termux/usr/lib/
+```
+
+#### 5.3 Copy Libraries to jniLibs
 ```bash
 # Copy shared libraries directly (keep original names)
 cp libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so \
@@ -181,8 +200,10 @@ chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
 
 ### Step 6: Update TermuxInstaller.java
 
-Edit `app/src/main/java/com/termux/app/TermuxInstaller.java` to add symbolic link mappings:
+Edit `app/src/main/java/com/termux/app/TermuxInstaller.java` to handle both native executables and script files:
 
+#### 6.1 For Native Executables (in jniLibs)
+Add symbolic link mappings for native executables:
 ```java
 String[][] executables = {
     // Existing entries...
@@ -190,20 +211,32 @@ String[][] executables = {
     {"libcodex-exec.so", "codex-exec"},
     {"libapt.so", "apt"},
     
-    // Add new Node.js ecosystem
+    // Add new native executables only
     {"libnode.so", "node"},
-    {"libnpm.so", "npm"},
-    {"libnpx.so", "npx"},
-    
-    // Add additional utilities as needed
     {"libenv.so", "env"},
     {"libprintenv.so", "printenv"},
 };
 ```
 
-The installer automatically creates symbolic links:
-- `/data/data/com.termux/files/usr/bin/node` → `/data/data/com.termux/files/usr/lib/libnode.so`
-- `/data/data/com.termux/files/usr/bin/npm` → `/data/data/com.termux/files/usr/lib/libnpm.so`
+#### 6.2 For Scripts and Non-Native Files (in assets)
+Add asset extraction logic for script files:
+```java
+// Extract assets to runtime directory during installation
+private static void extractAssets(Context context) throws Exception {
+    AssetManager assets = context.getAssets();
+    String termuxDir = "/data/data/com.termux/files";
+    
+    // Extract usr/bin scripts
+    extractAssetDirectory(assets, "termux/usr/bin", termuxDir + "/usr/bin");
+    
+    // Extract usr/lib supporting files
+    extractAssetDirectory(assets, "termux/usr/lib", termuxDir + "/usr/lib");
+}
+```
+
+**Result**: 
+- **Native executables**: `/data/data/com.termux/files/usr/bin/node` → symlink to `/data/data/com.termux/files/usr/lib/libnode.so`
+- **Script files**: `/data/data/com.termux/files/usr/bin/npm` → direct file copied from assets with dependencies intact
 
 ### Step 7: Build and Test
 
@@ -338,34 +371,47 @@ make sop-help
 
 ## Package Integration Examples
 
-### Example 1: Complete Node.js Ecosystem
+### Example 1: Complete Node.js Ecosystem (Mixed Native + Scripts)
 
 ```bash
 # 1. Download Node.js package
 wget -O packages/nodejs_24.7.0_aarch64.deb \
   "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb"
 
-# 2. Extract and analyze
+# 2. Extract and analyze file types
 mkdir -p packages/nodejs-extract
 dpkg-deb -x packages/nodejs_24.7.0_aarch64.deb packages/nodejs-extract/
-find packages/nodejs-extract -path "*/usr/bin/*" -type f
 
-# 3. Copy to jniLibs with Android naming
+# Check file types to determine handling
+file packages/nodejs-extract/data/data/com.termux/files/usr/bin/node
+# Output: ARM aarch64 ELF 64-bit LSB pie executable (NATIVE - use jniLibs)
+
+file packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm
+# Output: symbolic link to ../lib/node_modules/npm/bin/npm-cli.js (SCRIPT - use assets)
+
+# 3. Handle NATIVE executable (node)
 mkdir -p app/src/main/jniLibs/arm64-v8a/
 cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/node \
    app/src/main/jniLibs/arm64-v8a/libnode.so
+chmod +x app/src/main/jniLibs/arm64-v8a/libnode.so
+
+# 4. Handle SCRIPT files (npm, npx) and dependencies
+mkdir -p app/src/main/assets/termux/usr/bin
+mkdir -p app/src/main/assets/termux/usr/lib
+
+# Copy scripts directly (no renaming)
 cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm \
-   app/src/main/jniLibs/arm64-v8a/libnpm.so
+   app/src/main/assets/termux/usr/bin/npm
 cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npx \
-   app/src/main/jniLibs/arm64-v8a/libnpx.so
+   app/src/main/assets/termux/usr/bin/npx
 
-# 4. Set permissions
-chmod +x app/src/main/jniLibs/arm64-v8a/lib*.so
+# Copy complete dependency tree for scripts
+cp -r packages/nodejs-extract/data/data/com.termux/files/usr/lib/node_modules \
+      app/src/main/assets/termux/usr/lib/
 
-# 5. Update TermuxInstaller.java executables array
-{"libnode.so", "node"},
-{"libnpm.so", "npm"},  
-{"libnpx.so", "npx"},
+# 5. Update TermuxInstaller.java (only for native executables)
+{"libnode.so", "node"},  # Only native node binary needs symlink
+# npm and npx handled automatically by asset extraction
 ```
 
 ### Example 2: DPKG Package Management Suite
@@ -415,22 +461,35 @@ chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
 # 4. No TermuxInstaller.java update needed for libraries (only for executables)
 ```
 
-## Android Library Naming Rules
+## Android Integration Rules
 
-### Executable Files
-- **Source**: `/data/data/com.termux/files/usr/bin/executable`
-- **Target**: `app/src/main/jniLibs/arm64-v8a/libexecutable.so`
-- **Symlink**: `/data/data/com.termux/files/usr/bin/executable` → `/data/data/com.termux/files/usr/lib/libexecutable.so`
+### Native Executable Files (ARM64 ELF binaries)
+- **Source**: `/data/data/com.termux/files/usr/bin/executable` (file type: ARM aarch64 ELF)
+- **Target**: `app/src/main/jniLibs/arm64-v8a/libexecutable.so` (Android naming convention)
+- **Runtime**: `/data/data/com.termux/files/usr/bin/executable` → symlink to `/data/data/com.termux/files/usr/lib/libexecutable.so`
+- **TermuxInstaller**: Requires entry in executables array
+
+### Script Files and Non-Native Executables
+- **Source**: `/data/data/com.termux/files/usr/bin/script` (file type: ASCII text, symbolic link, etc.)
+- **Target**: `app/src/main/assets/termux/usr/bin/script` (direct copy, no renaming)
+- **Runtime**: `/data/data/com.termux/files/usr/bin/script` → direct file extracted from assets
+- **Dependencies**: Supporting directories (like node_modules) also copied to assets
+- **TermuxInstaller**: No entry needed, handled by asset extraction
 
 ### Shared Libraries  
 - **Source**: `/data/data/com.termux/files/usr/lib/library.so`
 - **Target**: `app/src/main/jniLibs/arm64-v8a/library.so` (keep original name)
 - **Access**: Direct library loading, no symlink needed
+- **TermuxInstaller**: No entry needed
 
 ### Permissions
-All files in `app/src/main/jniLibs/arm64-v8a/` must have executable permissions:
+All files must have executable permissions:
 ```bash
+# For jniLibs
 chmod +x app/src/main/jniLibs/arm64-v8a/*.so
+
+# For assets (after extraction at runtime)
+chmod +x /data/data/com.termux/files/usr/bin/*
 ```
 
 ## Directory Structure
@@ -441,24 +500,31 @@ Project Structure:
 │   ├── nodejs_24.7.0_aarch64.deb
 │   ├── nodejs-extract/                # Extracted package contents
 │   └── libandroid-support-extract/
-├── app/src/main/jniLibs/arm64-v8a/   # Android native libraries
-│   ├── libnode.so                     # Node.js runtime (executable)
-│   ├── libnpm.so                      # npm package manager (executable)  
+├── app/src/main/jniLibs/arm64-v8a/   # Native executables & shared libraries
+│   ├── libnode.so                     # Node.js runtime (native executable)
 │   ├── libandroid-support.so          # Support library (shared lib)
 │   └── ...
+├── app/src/main/assets/termux/        # Scripts and supporting files
+│   ├── usr/bin/
+│   │   ├── npm                        # npm script (non-native)
+│   │   ├── npx                        # npx script (non-native)
+│   │   └── ...
+│   └── usr/lib/
+│       └── node_modules/              # Complete Node.js ecosystem
 └── app/src/main/java/com/termux/app/
-    └── TermuxInstaller.java           # Symlink creation logic
+    └── TermuxInstaller.java           # Symlink creation & asset extraction
 
 Runtime Structure:
 /data/data/com.termux/files/usr/
-├── bin/                               # Symbolic links to executables
-│   ├── node -> /data/data/com.termux/files/usr/lib/libnode.so
-│   ├── npm -> /data/data/com.termux/files/usr/lib/libnpm.so
+├── bin/                               # Mixed: symlinks + direct files
+│   ├── node -> /data/data/com.termux/files/usr/lib/libnode.so  # Native (symlink)
+│   ├── npm                            # Script (direct file from assets)
+│   ├── npx                            # Script (direct file from assets)
 │   └── ...
-└── lib/                              # Copies of jniLibs for symlink targets
-    ├── libnode.so                    # Copy of jniLib for symlink resolution
-    ├── libandroid-support.so         # Shared library for dependencies
-    └── ...
+└── lib/                              # Libraries + dependencies
+    ├── libnode.so                     # Copy of jniLib for symlink resolution
+    ├── libandroid-support.so          # Shared library
+    └── node_modules/                  # Complete dependency tree from assets
 ```
 
 ### Native Package Integration Flow
