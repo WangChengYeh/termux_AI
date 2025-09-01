@@ -19,24 +19,16 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 ## Technical Architecture
 
 ### Native Library Integration
-**IMPORTANT**: Android requires all native executables to end with `.so` extension and be placed in the `jniLibs` directory.
-
-- **Android Requirement**: Native executables MUST be named as `lib*.so` files
-  - Android only extracts files matching the pattern `lib*.so` from APK
-  - Files are extracted to `/data/app/{package_hash}/lib/arm64/lib*.so`
-  - This is a hard requirement enforced by Android's package manager
-  
 - **Source**: Native ARM64 binaries from packages.termux.dev Debian packages
 - **Extraction**: `.deb` packages extracted using `ar` and `tar` to obtain native binaries
-- **Conversion**: Binaries renamed to follow `lib*.so` naming convention:
+- **Conversion**: Binaries renamed as `.so` files and placed in `app/src/main/jniLibs/arm64-v8a/`
   - AI tools: `libcodex.so`, `libcodex-exec.so` (custom Codex binaries)
   - Package management: `libapt.so` (from apt_2.8.1-2_aarch64.deb), `libdpkg.so`
-  - Development runtime: `libnode.so` (from nodejs_24.7.0_aarch64.deb)
-  - Core utilities: Must be named as `lib*.so` (e.g., `libcat.so`, `libls.so`)
-  
+  - Development runtime: `libnode.so` (from nodejs_24.7.0_aarch64.deb), `libnpm.so`, `libnpx.so`
+  - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so` (from coreutils)
 - **APK Integration**: Gradle packages `.so` files into APK with `extractNativeLibs=true`
-- **System Extraction**: Android extracts ONLY `lib*.so` files to `/data/app/{hash}/lib/arm64/`
-- **Access**: Symbolic links in `/usr/bin` remove the `lib` prefix and `.so` suffix for natural command names
+- **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
+- **Access**: Symbolic links in `/usr/bin` and `/usr/lib` point to native library paths
 - **Security**: W^X compliant - executables in read-only system-managed location
 
 ### Bootstrap Replacement
@@ -113,18 +105,9 @@ find native-binaries -name "apt" -type f
 ```
 
 #### 3. Convert to Android Native Libraries
-
-**Critical**: Android's package manager ONLY extracts files matching `lib*.so` pattern from APK.
-
 ```bash
-# Copy binaries and rename following Android's lib*.so naming requirement
+# Copy binaries and rename as .so files for Android integration
 mkdir -p app/src/main/jniLibs/arm64-v8a/
-
-# IMPORTANT: All files MUST follow lib*.so naming convention
-# Original binary name -> Android library name
-# node -> libnode.so
-# apt -> libapt.so
-# cat -> libcat.so
 
 # Node.js ecosystem
 cp native-binaries/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
@@ -137,8 +120,6 @@ cp native-binaries/data/data/com.termux/files/usr/bin/dpkg app/src/main/jniLibs/
 
 # Verify executable permissions
 chmod +x app/src/main/jniLibs/arm64-v8a/*.so
-
-# Note: Files not matching lib*.so pattern will NOT be extracted by Android
 ```
 
 #### 4. Dependency Resolution
@@ -245,25 +226,17 @@ echo "Hello World"
 
 ## Symbolic Link System
 
-The app automatically creates a comprehensive symbolic link system that transforms Android's `lib*.so` naming back to natural command names:
-
-### Naming Transformation
-Android requires `lib*.so` naming, but users expect natural command names. The symlink system handles this:
-- **APK contains**: `libnode.so`, `libapt.so`, `libcodex.so`
-- **Android extracts to**: `/data/app/{hash}/lib/arm64/lib*.so`
-- **Symlinks created as**: `/usr/bin/node`, `/usr/bin/apt`, `/usr/bin/codex`
+The app automatically creates a comprehensive symbolic link system:
 
 ### Executable Symlinks (`/usr/bin`)
 ```bash
-# AI Tools (lib prefix and .so suffix removed)
+# AI Tools
 /usr/bin/codex -> /data/app/{hash}/lib/arm64/libcodex.so
 /usr/bin/codex-exec -> /data/app/{hash}/lib/arm64/libcodex-exec.so
 
-# Package Management (natural command names)
+# Package Management
 /usr/bin/apt -> /data/app/{hash}/lib/arm64/libapt.so
 /usr/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
-/usr/bin/npm -> /data/app/{hash}/lib/arm64/libnpm.so
-/usr/bin/npx -> /data/app/{hash}/lib/arm64/libnpx.so
 ```
 
 ### Library Symlinks (`/usr/lib`)
