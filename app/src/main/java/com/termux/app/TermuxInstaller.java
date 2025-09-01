@@ -180,7 +180,14 @@ final class TermuxInstaller {
             {"libicutest.so.77.1", "libicutest.so.77.1"},
             {"libicutu.so.77.1", "libicutu.so.77.1"},
             {"libicuuc.so.77.1", "libicuuc.so.77.1"},
-            {"libc++_shared_v28.so", "libc++_shared_v28.so"}
+            {"libicudata.so.77.1", "libicudata.so.77"},
+            {"libicui18n.so.77.1", "libicui18n.so.77"},
+            {"libicuio.so.77.1", "libicuio.so.77"},
+            {"libicutest.so.77.1", "libicutest.so.77"},
+            {"libicutu.so.77.1", "libicutu.so.77"},
+            {"libicuuc.so.77.1", "libicuuc.so.77"},
+            {"libc++_shared_v28.so", "libc++_shared_v28.so"},
+            {"libzstd.so.1", "libzstd.so.1"}
         };
         
         // Define additional symlinks that point to existing libraries
