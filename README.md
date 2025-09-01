@@ -76,6 +76,10 @@ private static void installNativeExecutables(Activity activity) throws Exception
 
 This SOP describes the systematic process of integrating Debian packages from packages.termux.dev into the bootstrap-free Termux AI APK. Executables are embedded as native libraries (`.so` files) and accessed via symbolic links created at runtime.
 
+**📋 Quick Start**: Use the automated workflow: `make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0`
+
+**🔧 Manual Process**: Follow the 7-step process below for detailed control or learning purposes.
+
 ### Step 1: List Available Packages
 
 Browse available packages at the Termux packages repository:
@@ -214,6 +218,122 @@ adb shell am start -n com.termux/.app.TermuxActivity
 # Test commands in Termux terminal
 # node --version
 # npm --version
+```
+
+## SOP Makefile Automation
+
+### Overview
+
+The SOP process has been fully automated through Makefile targets, reducing the entire 7-step workflow to a single command while maintaining individual step control for advanced users.
+
+### Complete Automated Workflow
+
+Execute the entire SOP with one command:
+```bash
+# Complete package integration workflow
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0
+
+# Library-only packages
+make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1
+
+# Other examples
+make sop-add-package PACKAGE_NAME=nano VERSION=8.2
+```
+
+### Individual SOP Step Control
+
+For manual control or debugging, execute individual SOP steps:
+
+#### Step 1: List Available Packages
+```bash
+# List packages starting with 'n' (nodejs, nano, etc.)
+make sop-list LETTER=n
+
+# List library packages starting with 'liba'
+make sop-list LETTER=liba
+
+# List packages starting with 'd' (dpkg, etc.)
+make sop-list LETTER=d
+```
+
+#### Step 2: Download Package
+```bash
+make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0
+```
+
+#### Step 3: Extract Package
+```bash
+make sop-extract PACKAGE_NAME=nodejs
+```
+
+#### Step 4: Analyze Structure
+```bash
+make sop-analyze PACKAGE_NAME=nodejs
+# Shows: executables, libraries, file types, ARM64 verification
+```
+
+#### Step 5: Copy Files to Android Structure
+```bash
+make sop-copy PACKAGE_NAME=nodejs
+# Automatically applies Android naming conventions and permissions
+```
+
+#### Step 6: Update TermuxInstaller.java
+```bash
+make sop-update PACKAGE_NAME=nodejs
+# Generates code snippets for manual integration (if executables found)
+```
+
+#### Step 7: Build and Test
+```bash
+make sop-build
+# Executes: make clean build install
+```
+
+### Advanced Features
+
+#### Smart URL Resolution
+- **Regular packages**: Automatically resolves `n/nodejs/` paths
+- **Library packages**: Handles `liba/libandroid-support/` paths
+- **Error handling**: Validates parameters and provides usage examples
+
+#### File Analysis and Integration
+- **ARM64 verification**: Confirms ELF 64-bit ARM aarch64 binaries
+- **Android naming**: Executables → `lib*.so`, Libraries → original names
+- **Permissions**: Automatically sets executable permissions
+- **Structure analysis**: Shows executables vs libraries for integration planning
+
+#### TermuxInstaller.java Integration
+- **Executable detection**: Identifies files requiring symbolic link entries
+- **Code generation**: Provides exact Java array entries for copy-paste
+- **Library handling**: Correctly identifies library-only packages (no update needed)
+
+#### Example Output
+```bash
+$ make sop-analyze PACKAGE_NAME=nodejs
+🔍 SOP Step 4: Analyze nodejs package structure
+
+Executables in /usr/bin:
+packages/nodejs-extract/data/data/com.termux/files/usr/bin/node
+packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm
+packages/nodejs-extract/data/data/com.termux/files/usr/bin/npx
+
+Libraries in /usr/lib:
+(none found)
+
+File types:
+  node:  ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, stripped
+  npm:  symbolic link to ../lib/node_modules/npm/bin/npm-cli.js
+  npx:  symbolic link to ../lib/node_modules/npm/bin/npx-cli.js
+```
+
+### Help and Usage
+```bash
+# Show general help including SOP section
+make help
+
+# Show detailed SOP usage and examples
+make sop-help
 ```
 
 ## Package Integration Examples
@@ -410,6 +530,10 @@ make doctor          # Verify environment
 make build           # Build debug APK  
 make install         # Install via ADB
 make run             # Launch app
+
+# SOP Package Integration (see SOP section for details)
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0  # Complete workflow
+make sop-help        # Show SOP automation usage
 ```
 
 ## Implementation Details
@@ -585,10 +709,14 @@ make doctor           # Check tools (adb, gradlew)
 make devices          # List connected devices  
 make verify-abi       # Ensure device is ARM64
 
-# 2. Native package integration (first time setup)
-./scripts/download-packages.sh   # Download .deb packages from packages.termux.dev
-./scripts/extract-natives.sh     # Extract binaries and convert to .so files
-./scripts/resolve-deps.sh         # Include runtime dependencies
+# 2. Package integration (automated SOP workflow)
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0     # Complete integration
+make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1  # Dependencies
+
+# Alternative: Manual package integration (for learning/debugging)
+# ./scripts/download-packages.sh   # Download .deb packages from packages.termux.dev
+# ./scripts/extract-natives.sh     # Extract binaries and convert to .so files
+# ./scripts/resolve-deps.sh         # Include runtime dependencies
 
 # 3. Build and test
 make build            # Build debug APK with native libraries
