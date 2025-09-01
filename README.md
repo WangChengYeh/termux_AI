@@ -235,7 +235,7 @@ private static void extractAssets(Context context) throws Exception {
 ```
 
 **Result**: 
-- **Native executables**: `/data/data/com.termux/files/usr/bin/node` → symlink to `/data/data/com.termux/files/usr/lib/libnode.so`
+- **Native executables**: `/data/data/com.termux/files/usr/bin/node` → symlink to `/data/app/{package}/lib/arm64/libnode.so`
 - **Script files**: `/data/data/com.termux/files/usr/bin/npm` → direct file copied from assets with dependencies intact
 
 ### Step 7: Build and Test
@@ -466,7 +466,7 @@ chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
 ### Native Executable Files (ARM64 ELF binaries)
 - **Source**: `/data/data/com.termux/files/usr/bin/executable` (file type: ARM aarch64 ELF)
 - **Target**: `app/src/main/jniLibs/arm64-v8a/libexecutable.so` (Android naming convention)
-- **Runtime**: `/data/data/com.termux/files/usr/bin/executable` → symlink to `/data/data/com.termux/files/usr/lib/libexecutable.so`
+- **Runtime**: `/data/data/com.termux/files/usr/bin/executable` → symlink to `/data/app/{package}/lib/arm64/libexecutable.so`
 - **TermuxInstaller**: Requires entry in executables array
 
 ### Script Files and Non-Native Executables
@@ -517,14 +517,19 @@ Project Structure:
 Runtime Structure:
 /data/data/com.termux/files/usr/
 ├── bin/                               # Mixed: symlinks + direct files
-│   ├── node -> /data/data/com.termux/files/usr/lib/libnode.so  # Native (symlink)
+│   ├── node -> /data/app/{package}/lib/arm64/libnode.so        # Native (symlink)
 │   ├── npm                            # Script (direct file from assets)
 │   ├── npx                            # Script (direct file from assets)
 │   └── ...
-└── lib/                              # Libraries + dependencies
-    ├── libnode.so                     # Copy of jniLib for symlink resolution
-    ├── libandroid-support.so          # Shared library
+└── lib/                              # Libraries + dependencies from assets
+    ├── libandroid-support.so          # Shared library (copied from jniLibs)
     └── node_modules/                  # Complete dependency tree from assets
+
+Android System Structure:
+/data/app/{package}/lib/arm64/         # Read-only native libraries (extracted by Android)
+├── libnode.so                         # Native Node.js executable
+├── libandroid-support.so              # Support libraries
+└── ...
 ```
 
 ### Native Package Integration Flow
