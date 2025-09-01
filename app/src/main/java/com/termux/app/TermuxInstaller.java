@@ -159,10 +159,6 @@ final class TermuxInstaller {
             {"libstart-stop-daemon.so", "start-stop-daemon"},
             {"libupdate-alternatives.so", "update-alternatives"},
             {"libnode.so", "node"},
-            {"libcorepack.so", "corepack"},
-            {"libyarn.so", "yarn"},
-            {"libpnpm.so", "pnpm"},
-            {"libpnpx.so", "pnpx"},
             {"libenv.so", "env"},
             {"libprintenv.so", "printenv"}
         };
