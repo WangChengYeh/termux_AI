@@ -120,10 +120,15 @@ final class TermuxInstaller {
 
     /**
      * Verify native executables are extracted and create symbolic links
+     * 
+     * IMPORTANT: Android only extracts files matching lib*.so pattern from APK.
+     * All native executables must be named as lib*.so files in jniLibs directory.
+     * They are extracted to /data/app/{package_hash}/lib/arm64/lib*.so
      */
     private static void installNativeExecutables(Activity activity) throws Exception {
         // Native libs are automatically extracted to /data/app/{package}/lib/arm64/ 
         // by Android system when extractNativeLibs=true
+        // Only files matching lib*.so pattern are extracted - this is enforced by Android
         String nativeLibDir = activity.getApplicationInfo().nativeLibraryDir;
         Logger.logInfo(LOG_TAG, "Native libraries extracted to read-only location: " + nativeLibDir);
         
@@ -135,6 +140,14 @@ final class TermuxInstaller {
     
     /**
      * Create symbolic links for executables and libraries
+     * 
+     * Android requires native files to follow lib*.so naming convention.
+     * This method creates user-friendly symlinks that remove the lib prefix and .so suffix.
+     * 
+     * Example transformations:
+     * - libnode.so -> /usr/bin/node
+     * - libapt.so -> /usr/bin/apt
+     * - libcodex.so -> /usr/bin/codex
      */
     private static void createSymbolicLinks(Activity activity, String nativeLibDir) throws Exception {
         // Create directories for symbolic links
@@ -144,6 +157,8 @@ final class TermuxInstaller {
         FileUtils.createDirectoryFile(libDir);
         
         // Define executables that go to /usr/bin
+        // Format: {source lib*.so file, target command name}
+        // The lib prefix and .so suffix are removed for natural command names
         String[][] executables = {
             {"libcodex.so", "codex"},
             {"libcodex-exec.so", "codex-exec"},
