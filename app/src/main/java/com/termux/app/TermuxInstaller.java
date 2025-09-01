@@ -146,6 +146,18 @@ final class TermuxInstaller {
             {"libcodex.so", "codex"},
             {"libcodex-exec.so", "codex-exec"},
             {"libapt.so", "apt"},
+            {"libdpkg.so", "dpkg"},
+            {"libdpkg-buildapi.so", "dpkg-buildapi"},
+            {"libdpkg-buildtree.so", "dpkg-buildtree"},
+            {"libdpkg-deb.so", "dpkg-deb"},
+            {"libdpkg-divert.so", "dpkg-divert"},
+            {"libdpkg-fsys-usrunmess.so", "dpkg-fsys-usrunmess"},
+            {"libdpkg-query.so", "dpkg-query"},
+            {"libdpkg-realpath.so", "dpkg-realpath"},
+            {"libdpkg-split.so", "dpkg-split"},
+            {"libdpkg-trigger.so", "dpkg-trigger"},
+            {"libstart-stop-daemon.so", "start-stop-daemon"},
+            {"libupdate-alternatives.so", "update-alternatives"},
             {"libnode.so", "node"}
         };
         
@@ -184,7 +196,9 @@ final class TermuxInstaller {
             {"libzstd1.so", "libzstd.so.1"},
             {"libiconv.so", "libiconv.so"},
             {"libxxhash0.so", "libxxhash.so.0"},
-            {"libgcrypt.so", "libgcrypt.so"}
+            {"libgcrypt.so", "libgcrypt.so"},
+            {"libgpg-error.so", "libgpg-error.so"},
+            {"libmd.so", "libmd.so"}
         };
         
         // Define additional symlinks that point to existing libraries  
