@@ -185,7 +185,8 @@ final class TermuxInstaller {
             {"libicuuc771.so", "libicuuc.so.77"},
             {"libzstd1.so", "libzstd.so.1"},
             {"libiconv.so", "libiconv.so"},
-            {"libxxhash0.so", "libxxhash.so.0"}
+            {"libxxhash0.so", "libxxhash.so.0"},
+            {"libgcrypt.so", "libgcrypt.so"}
         };
         
         // Define additional symlinks that point to existing libraries  
