@@ -3,6 +3,7 @@
 /captures
 
 # Built application files
+packages/*-extract/
 build/
 release/
 *.apk

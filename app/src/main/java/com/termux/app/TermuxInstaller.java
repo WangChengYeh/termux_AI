@@ -158,7 +158,15 @@ final class TermuxInstaller {
             {"libdpkg-trigger.so", "dpkg-trigger"},
             {"libstart-stop-daemon.so", "start-stop-daemon"},
             {"libupdate-alternatives.so", "update-alternatives"},
-            {"libnode.so", "node"}
+            {"libnode.so", "node"},
+            {"libnpm.so", "npm"},
+            {"libnpx.so", "npx"},
+            {"libcorepack.so", "corepack"},
+            {"libyarn.so", "yarn"},
+            {"libpnpm.so", "pnpm"},
+            {"libpnpx.so", "pnpx"},
+            {"libenv.so", "env"},
+            {"libprintenv.so", "printenv"}
         };
         
         // Define libraries that go to /usr/lib

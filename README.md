@@ -70,6 +70,277 @@ private static void installNativeExecutables(Activity activity) throws Exception
 - `wget` or `curl` for package downloads
 - `ar` and `tar` for Debian package extraction
 
+## Standard Operating Procedure: Adding Packages to APK
+
+### Overview
+
+This SOP describes the systematic process of integrating Debian packages from packages.termux.dev into the bootstrap-free Termux AI APK. Executables are embedded as native libraries (`.so` files) and accessed via symbolic links created at runtime.
+
+### Step 1: List Available Packages
+
+Browse available packages at the Termux packages repository:
+```bash
+# Browse package categories at https://packages.termux.dev/apt/termux-main/pool/main/
+
+# Search for specific packages starting with letter 'n' (example: nodejs)
+curl -s "https://packages.termux.dev/apt/termux-main/pool/main/n/" | grep -o 'href="[^"]*\.deb"' | sed 's/href="//g' | sed 's/"//g'
+
+# For packages starting with 'lib' prefix, check:
+curl -s "https://packages.termux.dev/apt/termux-main/pool/main/liba/" | grep -o 'href="[^"]*\.deb"'
+```
+
+Package categories are organized alphabetically by first letter:
+- `/main/a/` - packages starting with 'a' (apt, android-tools)
+- `/main/n/` - packages starting with 'n' (nodejs, nano)
+- `/main/liba/` - lib packages starting with 'liba' (libandroid-support)
+
+### Step 2: Download Package
+
+Download the desired aarch64 package to the packages directory:
+```bash
+# Create packages directory if it doesn't exist
+mkdir -p packages
+cd packages
+
+# Download package (example: Node.js)
+wget -O nodejs_24.7.0_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb"
+
+# Download dependency package (example: libandroid-support)
+wget -O libandroid-support_29-1_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb"
+```
+
+### Step 3: Extract Package Contents
+
+Extract the `.deb` package using dpkg-deb to analyze its structure:
+```bash
+# Extract package contents
+mkdir -p nodejs-extract
+dpkg-deb -x nodejs_24.7.0_aarch64.deb nodejs-extract/
+
+# Extract dependency package
+mkdir -p libandroid-support-extract  
+dpkg-deb -x libandroid-support_29-1_aarch64.deb libandroid-support-extract/
+```
+
+### Step 4: Analyze Package Structure
+
+Examine the extracted contents to identify executables and libraries:
+```bash
+# Find all executables in /usr/bin
+find nodejs-extract -type f -path "*/usr/bin/*"
+# Output: nodejs-extract/data/data/com.termux/files/usr/bin/node
+#         nodejs-extract/data/data/com.termux/files/usr/bin/npm
+#         nodejs-extract/data/data/com.termux/files/usr/bin/npx
+
+# Find all libraries in /usr/lib
+find nodejs-extract -type f -path "*/usr/lib/*" -name "*.so*"
+
+# Check file types to verify ARM64 ELF binaries
+file nodejs-extract/data/data/com.termux/files/usr/bin/node
+# Expected: ARM aarch64 ELF 64-bit LSB pie executable
+
+# Check library dependencies
+readelf -d nodejs-extract/data/data/com.termux/files/usr/bin/node | grep NEEDED
+```
+
+### Step 5: Copy Files to Android APK Structure
+
+Copy executables and libraries following Android JNI naming conventions:
+
+#### 5.1 Copy Executables to jniLibs
+```bash
+# Create jniLibs directory
+mkdir -p app/src/main/jniLibs/arm64-v8a
+
+# Copy executables with lib prefix and .so extension (Android naming convention)
+cp nodejs-extract/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
+cp nodejs-extract/data/data/com.termux/files/usr/bin/npm app/src/main/jniLibs/arm64-v8a/libnpm.so
+cp nodejs-extract/data/data/com.termux/files/usr/bin/npx app/src/main/jniLibs/arm64-v8a/libnpx.so
+
+# Set executable permissions (required for Android)
+chmod +x app/src/main/jniLibs/arm64-v8a/libnode.so
+chmod +x app/src/main/jniLibs/arm64-v8a/libnpm.so
+chmod +x app/src/main/jniLibs/arm64-v8a/libnpx.so
+```
+
+#### 5.2 Copy Libraries to jniLibs
+```bash
+# Copy shared libraries directly (keep original names)
+cp libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so \
+   app/src/main/jniLibs/arm64-v8a/
+
+# Set executable permissions
+chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
+```
+
+### Step 6: Update TermuxInstaller.java
+
+Edit `app/src/main/java/com/termux/app/TermuxInstaller.java` to add symbolic link mappings:
+
+```java
+String[][] executables = {
+    // Existing entries...
+    {"libcodex.so", "codex"},
+    {"libcodex-exec.so", "codex-exec"},
+    {"libapt.so", "apt"},
+    
+    // Add new Node.js ecosystem
+    {"libnode.so", "node"},
+    {"libnpm.so", "npm"},
+    {"libnpx.so", "npx"},
+    
+    // Add additional utilities as needed
+    {"libenv.so", "env"},
+    {"libprintenv.so", "printenv"},
+};
+```
+
+The installer automatically creates symbolic links:
+- `/data/data/com.termux/files/usr/bin/node` → `/data/data/com.termux/files/usr/lib/libnode.so`
+- `/data/data/com.termux/files/usr/bin/npm` → `/data/data/com.termux/files/usr/lib/libnpm.so`
+
+### Step 7: Build and Test
+
+Build and install the updated APK:
+```bash
+# Clean, build and install using Makefile
+make clean && make && make install
+
+# Test functionality
+adb shell am start -n com.termux/.app.TermuxActivity
+
+# Test commands in Termux terminal
+# node --version
+# npm --version
+```
+
+## Package Integration Examples
+
+### Example 1: Complete Node.js Ecosystem
+
+```bash
+# 1. Download Node.js package
+wget -O packages/nodejs_24.7.0_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb"
+
+# 2. Extract and analyze
+mkdir -p packages/nodejs-extract
+dpkg-deb -x packages/nodejs_24.7.0_aarch64.deb packages/nodejs-extract/
+find packages/nodejs-extract -path "*/usr/bin/*" -type f
+
+# 3. Copy to jniLibs with Android naming
+mkdir -p app/src/main/jniLibs/arm64-v8a/
+cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/node \
+   app/src/main/jniLibs/arm64-v8a/libnode.so
+cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm \
+   app/src/main/jniLibs/arm64-v8a/libnpm.so
+cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npx \
+   app/src/main/jniLibs/arm64-v8a/libnpx.so
+
+# 4. Set permissions
+chmod +x app/src/main/jniLibs/arm64-v8a/lib*.so
+
+# 5. Update TermuxInstaller.java executables array
+{"libnode.so", "node"},
+{"libnpm.so", "npm"},  
+{"libnpx.so", "npx"},
+```
+
+### Example 2: DPKG Package Management Suite
+
+```bash
+# 1. Download DPKG package
+wget -O packages/dpkg_1.22.6-4_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main/pool/main/d/dpkg/dpkg_1.22.6-4_aarch64.deb"
+
+# 2. Extract and find all DPKG utilities
+dpkg-deb -x packages/dpkg_1.22.6-4_aarch64.deb packages/dpkg-extract/
+find packages/dpkg-extract -path "*/usr/bin/*" -type f
+# Output shows: dpkg, dpkg-deb, dpkg-query, dpkg-split, etc.
+
+# 3. Copy all utilities with batch script
+for file in packages/dpkg-extract/data/data/com.termux/files/usr/bin/*; do
+  filename=$(basename "$file")
+  cp "$file" "app/src/main/jniLibs/arm64-v8a/lib${filename}.so"
+  chmod +x "app/src/main/jniLibs/arm64-v8a/lib${filename}.so"
+done
+
+# 4. Update TermuxInstaller.java with all DPKG tools
+{"libdpkg.so", "dpkg"},
+{"libdpkg-deb.so", "dpkg-deb"},
+{"libdpkg-query.so", "dpkg-query"},
+{"libdpkg-split.so", "dpkg-split"},
+// ... additional DPKG utilities
+```
+
+### Example 3: Dependency Resolution (libandroid-support)
+
+```bash
+# 1. Download dependency library
+wget -O packages/libandroid-support_29-1_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb"
+
+# 2. Extract shared library
+dpkg-deb -x packages/libandroid-support_29-1_aarch64.deb packages/libandroid-support-extract/
+find packages/libandroid-support-extract -name "*.so*"
+# Output: libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so
+
+# 3. Copy library (keep original name)
+cp packages/libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so \
+   app/src/main/jniLibs/arm64-v8a/
+chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
+
+# 4. No TermuxInstaller.java update needed for libraries (only for executables)
+```
+
+## Android Library Naming Rules
+
+### Executable Files
+- **Source**: `/data/data/com.termux/files/usr/bin/executable`
+- **Target**: `app/src/main/jniLibs/arm64-v8a/libexecutable.so`
+- **Symlink**: `/data/data/com.termux/files/usr/bin/executable` → `/data/data/com.termux/files/usr/lib/libexecutable.so`
+
+### Shared Libraries  
+- **Source**: `/data/data/com.termux/files/usr/lib/library.so`
+- **Target**: `app/src/main/jniLibs/arm64-v8a/library.so` (keep original name)
+- **Access**: Direct library loading, no symlink needed
+
+### Permissions
+All files in `app/src/main/jniLibs/arm64-v8a/` must have executable permissions:
+```bash
+chmod +x app/src/main/jniLibs/arm64-v8a/*.so
+```
+
+## Directory Structure
+
+```
+Project Structure:
+├── packages/                          # Downloaded .deb packages
+│   ├── nodejs_24.7.0_aarch64.deb
+│   ├── nodejs-extract/                # Extracted package contents
+│   └── libandroid-support-extract/
+├── app/src/main/jniLibs/arm64-v8a/   # Android native libraries
+│   ├── libnode.so                     # Node.js runtime (executable)
+│   ├── libnpm.so                      # npm package manager (executable)  
+│   ├── libandroid-support.so          # Support library (shared lib)
+│   └── ...
+└── app/src/main/java/com/termux/app/
+    └── TermuxInstaller.java           # Symlink creation logic
+
+Runtime Structure:
+/data/data/com.termux/files/usr/
+├── bin/                               # Symbolic links to executables
+│   ├── node -> /data/data/com.termux/files/usr/lib/libnode.so
+│   ├── npm -> /data/data/com.termux/files/usr/lib/libnpm.so
+│   └── ...
+└── lib/                              # Copies of jniLibs for symlink targets
+    ├── libnode.so                    # Copy of jniLib for symlink resolution
+    ├── libandroid-support.so         # Shared library for dependencies
+    └── ...
+```
+
 ### Native Package Integration Flow
 
 #### 1. Download Termux Packages
