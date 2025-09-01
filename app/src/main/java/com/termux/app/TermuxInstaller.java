@@ -148,7 +148,10 @@ final class TermuxInstaller {
             {"libcodex.so", "codex"},
             {"libcodex-exec.so", "codex-exec"},
             {"libapt.so", "apt"},
-            {"libnode.so", "node"}
+            {"libnode.so", "node"},
+            {"libbzip2bin.so", "bzip2"},
+            {"libxz.so", "xz"},
+            {"libsqlite3bin.so", "sqlite3"}
         };
         
         // Define libraries that go to /usr/lib
@@ -156,14 +159,41 @@ final class TermuxInstaller {
             {"libandroid-glob.so", "libandroid-glob.so"},
             {"libapt-private.so", "libapt-private.so"},
             {"libapt-pkg.so", "libapt-pkg.so"},
+            {"libc++_shared.so", "libc++_shared.so"},
             {"libzlib.so", "libz.so"},
-            {"libz.so", "libz.so"}
+            {"libz.so", "libz.so"},
+            {"libcares.so", "libcares.so"},
+            {"libbz2.so", "libbz2.so"},
+            {"libbz2.so", "libbz2.so.1.0"},
+            {"libsqlite3.so", "libsqlite3.so"},
+            {"libsqlite3.so", "libsqlite3.so.0"},
+            {"libcrypto.so", "libcrypto.so"},
+            {"libcrypto.so", "libcrypto.so.3"},
+            {"libssl.so", "libssl.so"},
+            {"libssl.so", "libssl.so.3"},
+            {"liblzma.so", "liblzma.so"},
+            {"liblzma.so", "liblzma.so.5"},
+            {"liblzma.so.5.8.1", "liblzma.so.5.8.1"},
+            {"libicudata.so.77.1", "libicudata.so.77.1"},
+            {"libicui18n.so.77.1", "libicui18n.so.77.1"},
+            {"libicuio.so.77.1", "libicuio.so.77.1"},
+            {"libicutest.so.77.1", "libicutest.so.77.1"},
+            {"libicutu.so.77.1", "libicutu.so.77.1"},
+            {"libicuuc.so.77.1", "libicuuc.so.77.1"},
+            {"libc++_shared_v28.so", "libc++_shared_v28.so"}
         };
         
         // Define additional symlinks that point to existing libraries
         String[][] additionalSymlinks = {
             {"libz.so", "libz.so.1"},      // Node.js needs libz.so.1 -> point to libz.so
-            {"libz.so", "libz.so.1.3.1"}   // Full version symlink
+            {"libz.so", "libz.so.1.3.1"},   // Full version symlink
+            {"liblzma.so.5.8.1", "liblzma.so.5"},  // lzma version symlink
+            {"libicudata.so.77.1", "libicudata.so.77"},  // ICU data version symlink
+            {"libicui18n.so.77.1", "libicui18n.so.77"},  // ICU i18n version symlink
+            {"libicuio.so.77.1", "libicuio.so.77"},      // ICU io version symlink
+            {"libicutest.so.77.1", "libicutest.so.77"},  // ICU test version symlink
+            {"libicutu.so.77.1", "libicutu.so.77"},      // ICU tu version symlink
+            {"libicuuc.so.77.1", "libicuuc.so.77"}       // ICU uc version symlink
         };
         
         // Create symlinks for executables in /usr/bin
@@ -179,6 +209,9 @@ final class TermuxInstaller {
                 if (linkFile.exists()) {
                     linkFile.delete();
                 }
+                
+                // Ensure parent directory exists
+                linkFile.getParentFile().mkdirs();
                 
                 // Create symbolic link
                 Os.symlink(sourcePath, linkPath);
@@ -200,6 +233,9 @@ final class TermuxInstaller {
                     linkFile.delete();
                 }
                 
+                // Ensure parent directory exists
+                linkFile.getParentFile().mkdirs();
+                
                 // Create symbolic link
                 Os.symlink(sourcePath, linkPath);
                 Logger.logInfo(LOG_TAG, "Created library symlink: " + linkPath + " -> " + sourcePath);
@@ -219,6 +255,9 @@ final class TermuxInstaller {
                 if (linkFile.exists()) {
                     linkFile.delete();
                 }
+                
+                // Ensure parent directory exists
+                linkFile.getParentFile().mkdirs();
                 
                 // Create symbolic link
                 Os.symlink(sourcePath, linkPath);
