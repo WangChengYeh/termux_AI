@@ -148,10 +148,7 @@ final class TermuxInstaller {
             {"libcodex.so", "codex"},
             {"libcodex-exec.so", "codex-exec"},
             {"libapt.so", "apt"},
-            {"libnode.so", "node"},
-            {"libbzip2bin.so", "bzip2"},
-            {"libxz.so", "xz"},
-            {"libsqlite3bin.so", "sqlite3"}
+            {"libnode.so", "node"}
         };
         
         // Define libraries that go to /usr/lib
@@ -186,7 +183,6 @@ final class TermuxInstaller {
             {"libicutest771.so", "libicutest.so.77"},
             {"libicutu771.so", "libicutu.so.77"},
             {"libicuuc771.so", "libicuuc.so.77"},
-            {"libc++_shared_v28.so", "libc++_shared_v28.so"},
             {"libzstd1.so", "libzstd.so.1"},
             {"libiconv.so", "libiconv.so"},
             {"libxxhash0.so", "libxxhash.so.0"}
