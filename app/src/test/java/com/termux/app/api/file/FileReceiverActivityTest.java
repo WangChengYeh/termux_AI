@@ -5,16 +5,16 @@ import com.termux.app.api.file.FileReceiverActivity;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
+import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(RobolectricTestRunner.class)
+@RunWith(JUnit4.class)
 public class FileReceiverActivityTest {
 
     @Test
-    public void testIsSharedTextAnUrl() {
+    public void testIsSharedTextAnUrlStaticMethod() {
         List<String> validUrls = new ArrayList<>();
         validUrls.add("http://example.com");
         validUrls.add("https://example.com");
