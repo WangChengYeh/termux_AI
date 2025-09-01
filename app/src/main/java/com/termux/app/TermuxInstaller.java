@@ -159,8 +159,6 @@ final class TermuxInstaller {
             {"libstart-stop-daemon.so", "start-stop-daemon"},
             {"libupdate-alternatives.so", "update-alternatives"},
             {"libnode.so", "node"},
-            {"libnpm.so", "npm"},
-            {"libnpx.so", "npx"},
             {"libcorepack.so", "corepack"},
             {"libyarn.so", "yarn"},
             {"libpnpm.so", "pnpm"},
@@ -169,26 +167,50 @@ final class TermuxInstaller {
             {"libprintenv.so", "printenv"}
         };
         
-        // Define libraries that go to /usr/lib
-        String[][] libraries = {
-            {"libandroid-glob.so", "libandroid-glob.so"},
-            {"libapt-private.so", "libapt-private.so"},
-            {"libapt-pkg.so", "libapt-pkg.so"},
-            {"libc++_shared.so", "libc++_shared.so"},
-            {"libzlib.so", "libz.so"},
-            {"libz.so", "libz.so"},
-            {"libz1.so", "libz.so.1"},
-            {"libz131.so", "libz.so.1.3.1"},
-            {"libcares.so", "libcares.so"},
-            {"libbz2.so", "libbz2.so"},
-            {"libbz210.so", "libbz2.so.1.0"},
-            {"libsqlite3.so", "libsqlite3.so"},
+        // Define base libraries that create primary symlinks in /usr/lib
+        String[] baseLibraries = {
+            "libandroid-glob.so",
+            "libapt-private.so", 
+            "libapt-pkg.so",
+            "libc++_shared.so",
+            "libz.so",
+            "libcares.so",
+            "libbz2.so",
+            "libsqlite3.so",
+            "libcrypto3.so",
+            "libssl3.so",
+            "liblzma.so",
+            "libicudata771.so",
+            "libicui18n771.so",
+            "libicuio771.so",
+            "libicutest771.so",
+            "libicutu771.so",
+            "libicuuc771.so",
+            "libzstd1.so",
+            "libiconv.so",
+            "libxxhash0.so",
+            "libgcrypt.so",
+            "libgpg-error.so",
+            "libmd.so",
+            "libandroid-support.so"
+        };
+        
+        // Define version postfix symlinks that point to base libraries in /usr/lib
+        String[][] versionSymlinks = {
+            // zlib versions
+            {"libz.so", "libz.so.1"},
+            {"libz.so", "libz.so.1.3.1"},
+            // bz2 versions  
+            {"libbz2.so", "libbz2.so.1.0"},
+            // sqlite versions
             {"libsqlite3.so", "libsqlite3.so.0"},
+            // openssl versions
             {"libcrypto3.so", "libcrypto.so.3"},
             {"libssl3.so", "libssl.so.3"},
-            {"liblzma.so", "liblzma.so"},
-            {"liblzma5.so", "liblzma.so.5"},
-            {"liblzma581.so", "liblzma.so.5.8.1"},
+            // lzma versions
+            {"liblzma.so", "liblzma.so.5"},
+            {"liblzma.so", "liblzma.so.5.8.1"},
+            // ICU versions  
             {"libicudata771.so", "libicudata.so.77.1"},
             {"libicui18n771.so", "libicui18n.so.77.1"},
             {"libicuio771.so", "libicuio.so.77.1"},
@@ -201,25 +223,10 @@ final class TermuxInstaller {
             {"libicutest771.so", "libicutest.so.77"},
             {"libicutu771.so", "libicutu.so.77"},
             {"libicuuc771.so", "libicuuc.so.77"},
+            // zstd versions
             {"libzstd1.so", "libzstd.so.1"},
-            {"libiconv.so", "libiconv.so"},
-            {"libxxhash0.so", "libxxhash.so.0"},
-            {"libgcrypt.so", "libgcrypt.so"},
-            {"libgpg-error.so", "libgpg-error.so"},
-            {"libmd.so", "libmd.so"}
-        };
-        
-        // Define additional symlinks that point to existing libraries  
-        String[][] additionalSymlinks = {
-            {"libz1.so", "libz.so.1"},         // Node.js needs libz.so.1
-            {"libz131.so", "libz.so.1.3.1"},  // Full version symlink
-            {"liblzma581.so", "liblzma.so.5"}, // lzma version symlink
-            {"libicudata771.so", "libicudata.so.77"},  // ICU data version symlink
-            {"libicui18n771.so", "libicui18n.so.77"},  // ICU i18n version symlink
-            {"libicuio771.so", "libicuio.so.77"},      // ICU io version symlink
-            {"libicutest771.so", "libicutest.so.77"},  // ICU test version symlink
-            {"libicutu771.so", "libicutu.so.77"},      // ICU tu version symlink
-            {"libicuuc771.so", "libicuuc.so.77"}       // ICU uc version symlink
+            // xxhash versions
+            {"libxxhash0.so", "libxxhash.so.0"}
         };
         
         // Create symlinks for executables in /usr/bin
@@ -245,13 +252,13 @@ final class TermuxInstaller {
             }
         }
         
-        // Create symlinks for libraries in /usr/lib
-        for (String[] lib : libraries) {
-            String sourcePath = nativeLibDir + "/" + lib[0];
+        // Create base library symlinks in /usr/lib pointing to /data/app/.../lib/arm64/
+        for (String libName : baseLibraries) {
+            String sourcePath = nativeLibDir + "/" + libName;
             File sourceFile = new File(sourcePath);
             
             if (sourceFile.exists()) {
-                String linkPath = libDir + "/" + lib[1];
+                String linkPath = libDir + "/" + libName;
                 File linkFile = new File(linkPath);
                 
                 // Remove existing link if present
@@ -262,19 +269,19 @@ final class TermuxInstaller {
                 // Ensure parent directory exists
                 linkFile.getParentFile().mkdirs();
                 
-                // Create symbolic link
+                // Create symbolic link from /usr/lib to /data/app/.../lib/arm64/
                 Os.symlink(sourcePath, linkPath);
-                Logger.logInfo(LOG_TAG, "Created library symlink: " + linkPath + " -> " + sourcePath);
+                Logger.logInfo(LOG_TAG, "Created base library symlink: " + linkPath + " -> " + sourcePath);
             }
         }
         
-        // Create additional versioned symlinks within /usr/lib
-        for (String[] symlink : additionalSymlinks) {
-            String sourcePath = libDir + "/" + symlink[0];  // Point to existing symlink in /usr/lib
-            File sourceFile = new File(sourcePath);
+        // Create version postfix symlinks within /usr/lib pointing to base libraries
+        for (String[] versionLink : versionSymlinks) {
+            String sourceLibPath = libDir + "/" + versionLink[0];  // Point to base library in /usr/lib
+            File sourceFile = new File(sourceLibPath);
             
             if (sourceFile.exists()) {
-                String linkPath = libDir + "/" + symlink[1];
+                String linkPath = libDir + "/" + versionLink[1];
                 File linkFile = new File(linkPath);
                 
                 // Remove existing link if present
@@ -285,9 +292,9 @@ final class TermuxInstaller {
                 // Ensure parent directory exists
                 linkFile.getParentFile().mkdirs();
                 
-                // Create symbolic link
-                Os.symlink(sourcePath, linkPath);
-                Logger.logInfo(LOG_TAG, "Created versioned library symlink: " + linkPath + " -> " + sourcePath);
+                // Create symbolic link within /usr/lib
+                Os.symlink(sourceLibPath, linkPath);
+                Logger.logInfo(LOG_TAG, "Created version symlink: " + linkPath + " -> " + sourceLibPath);
             }
         }
         

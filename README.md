@@ -24,7 +24,7 @@ Important: This fork supports only aarch64 (ARM64, `arm64-v8a`). Other ABIs are 
 - **Conversion**: Binaries renamed as `.so` files and placed in `app/src/main/jniLibs/arm64-v8a/`
   - AI tools: `libcodex.so`, `libcodex-exec.so` (custom Codex binaries)
   - Package management: `libapt.so` (from apt_2.8.1-2_aarch64.deb), `libdpkg.so`
-  - Development runtime: `libnode.so` (from nodejs_24.7.0_aarch64.deb), `libnpm.so`, `libnpx.so`
+  - Development runtime: `libnode.so` (from nodejs_24.7.0_aarch64.deb), npm/npx scripts
   - Core utilities: `libcat.so`, `libecho.so`, `libls.so`, `libpwd.so` (from coreutils)
 - **APK Integration**: Gradle packages `.so` files into APK with `extractNativeLibs=true`
 - **Extraction**: Android automatically extracts to `/data/app/{package}/lib/arm64/` (read-only)
@@ -479,8 +479,10 @@ chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
 ### Shared Libraries  
 - **Source**: `/data/data/com.termux/files/usr/lib/library.so`
 - **Target**: `app/src/main/jniLibs/arm64-v8a/library.so` (keep original name)
-- **Access**: Direct library loading, no symlink needed
-- **TermuxInstaller**: No entry needed
+- **Runtime**: 
+  - Base symlink: `/usr/lib/library.so` → `/data/app/{package}/lib/arm64/library.so`
+  - Version symlinks: `/usr/lib/library.so.1` → `/usr/lib/library.so`
+- **TermuxInstaller**: No entry needed, symlinks created automatically
 
 ### Permissions
 All files must have executable permissions:
@@ -573,8 +575,9 @@ mkdir -p app/src/main/jniLibs/arm64-v8a/
 
 # Node.js ecosystem
 cp native-binaries/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
-cp native-binaries/data/data/com.termux/files/usr/bin/npm app/src/main/jniLibs/arm64-v8a/libnpm.so  
-cp native-binaries/data/data/com.termux/files/usr/bin/npx app/src/main/jniLibs/arm64-v8a/libnpx.so
+# Copy scripts to assets (npm and npx are scripts, not native executables)
+cp native-binaries/data/data/com.termux/files/usr/bin/npm app/src/main/assets/termux/usr/bin/npm
+cp native-binaries/data/data/com.termux/files/usr/bin/npx app/src/main/assets/termux/usr/bin/npx
 
 # Package management
 cp native-binaries/data/data/com.termux/files/usr/bin/apt app/src/main/jniLibs/arm64-v8a/libapt.so
@@ -705,17 +708,48 @@ The app automatically creates a comprehensive symbolic link system:
 /usr/bin/node -> /data/app/{hash}/lib/arm64/libnode.so
 ```
 
-### Library Symlinks (`/usr/lib`)
+### Two-Tier Library Symlink Strategy
+
+This approach creates a two-level symlink chain for shared libraries:
+
+1. **Tier 1**: Base library symlinks in `/usr/lib/` point to actual files in `/data/app/.../lib/arm64/`
+2. **Tier 2**: Version postfix symlinks within `/usr/lib/` point to base library symlinks in `/usr/lib/`
+
+**Benefits:**
+- Native libraries remain in secure read-only `/data/app` location  
+- Standard library paths available in `/usr/lib/` for compatibility
+- Version-specific library lookups supported (e.g., `libz.so.1`, `libcrypto.so.3`)
+- Clean separation between Android's native library system and Unix conventions
+
+**Symlink Chain Example:**
+```
+Application requests libz.so.1
+↓
+/usr/lib/libz.so.1 → /usr/lib/libz.so → /data/app/{hash}/lib/arm64/libz.so (actual file)
+```
+
+### Library Symlinks (`/usr/lib`) - Two-Tier Strategy
 ```bash
-# Core libraries for dependency resolution
+# Core libraries: Base symlinks point to /data/app (read-only native libraries)
 /usr/lib/libandroid-glob.so -> /data/app/{hash}/lib/arm64/libandroid-glob.so
 /usr/lib/libapt-private.so -> /data/app/{hash}/lib/arm64/libapt-private.so
 /usr/lib/libapt-pkg.so -> /data/app/{hash}/lib/arm64/libapt-pkg.so
 
 # Zlib with versioned symlinks for Node.js compatibility
-/usr/lib/libz.so -> /data/app/{hash}/lib/arm64/libzlib.so
-/usr/lib/libz.so.1 -> /usr/lib/libz.so          # Versioned symlink
-/usr/lib/libz.so.1.3.1 -> /usr/lib/libz.so      # Full version symlink
+/usr/lib/libz.so -> /data/app/{hash}/lib/arm64/libz.so
+/usr/lib/libz.so.1 -> /usr/lib/libz.so          # Version symlink within /usr/lib
+/usr/lib/libz.so.1.3.1 -> /usr/lib/libz.so      # Full version symlink within /usr/lib
+
+# OpenSSL libraries with version symlinks
+/usr/lib/libcrypto3.so -> /data/app/{hash}/lib/arm64/libcrypto3.so
+/usr/lib/libcrypto.so.3 -> /usr/lib/libcrypto3.so
+/usr/lib/libssl3.so -> /data/app/{hash}/lib/arm64/libssl3.so  
+/usr/lib/libssl.so.3 -> /usr/lib/libssl3.so
+
+# ICU libraries with version symlinks
+/usr/lib/libicudata771.so -> /data/app/{hash}/lib/arm64/libicudata771.so
+/usr/lib/libicudata.so.77.1 -> /usr/lib/libicudata771.so
+/usr/lib/libicudata.so.77 -> /usr/lib/libicudata771.so
 ```
 
 ### Environment Configuration
@@ -846,8 +880,9 @@ TERMUX_PREFIX="$NATIVES_DIR/data/data/com.termux/files/usr/bin"
 
 # Node.js ecosystem
 cp "$TERMUX_PREFIX/node" "$JNI_DIR/libnode.so"
-cp "$TERMUX_PREFIX/npm" "$JNI_DIR/libnpm.so"
-cp "$TERMUX_PREFIX/npx" "$JNI_DIR/libnpx.so"
+# Copy scripts to assets (npm and npx are scripts, not native executables)
+cp "$TERMUX_PREFIX/npm" "$ASSETS_DIR/usr/bin/npm"
+cp "$TERMUX_PREFIX/npx" "$ASSETS_DIR/usr/bin/npx"
 
 # Package management
 cp "$TERMUX_PREFIX/apt" "$JNI_DIR/libapt.so"
