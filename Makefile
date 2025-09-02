@@ -50,7 +50,7 @@ help:
 	@echo "  sop-update      - Update TermuxInstaller.java (if needed)"
 	@echo "  sop-build       - Build and test integration"
 	@echo "  sop-test        - Interactive command testing in live app"
-	@echo "  sop-user-test   - Automated command testing via ADB"
+	@echo "  sop-user-test   - Automated UI testing via ADB input (./scripts/sop-user-test.sh)"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -548,87 +548,5 @@ sop-test:
 	echo "❌ Could not connect to app. Make sure the app is installed and running."
 
 sop-user-test:
-	@echo "🧪 SOP User Testing: Simulating user interactions via ADB input"
-	@echo ""
-	@echo "📱 Launching Termux AI..."
-	@adb shell am start -n "$(APP_ID)/.app.TermuxActivity" >/dev/null 2>&1 || true
-	@sleep 3
-	@echo "🖥️  App launched, waiting for terminal to be ready..."
-	@sleep 2
-	@echo ""
-	@echo "═══════════════════════════════════════════════════════════════"
-	@echo "⌨️  Simulating User Input Tests:"
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "🔍 Test 1: Basic command execution"
-	@echo -n "   Typing 'pwd' + Enter: "
-	@adb shell input text "pwd" && adb shell input keyevent 66 && sleep 1 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 2: Environment setup" 
-	@echo -n "   Typing 'source .profile' + Enter: "
-	@adb shell input text "source\\ .profile" && adb shell input keyevent 66 && sleep 1 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 3: Node.js version check"
-	@echo -n "   Typing 'node --version' + Enter: "
-	@adb shell input text "node\\ --version" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 4: NPM version check"
-	@echo -n "   Typing 'npm --version' + Enter: "
-	@adb shell input text "npm\\ --version" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 5: List available commands"
-	@echo -n "   Typing 'ls /usr/bin' + Enter: "
-	@adb shell input text "ls\\ /usr/bin" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 6: Check PATH environment"
-	@echo -n "   Typing 'echo \$$PATH' + Enter: "
-	@adb shell input text "echo\\ \$$PATH" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 7: Test AI tools availability"
-	@echo -n "   Typing 'command -v codex' + Enter: "
-	@adb shell input text "command\\ -v\\ codex" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 8: Test symbolic links"
-	@echo -n "   Typing 'file /usr/bin/node' + Enter: "
-	@adb shell input text "file\\ /usr/bin/node" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 9: Check library dependencies"
-	@echo -n "   Typing 'ldd /usr/bin/node | head -3' + Enter: "
-	@adb shell input text "ldd\\ /usr/bin/node\\ \\|\\ head\\ -3" && adb shell input keyevent 66 && sleep 3 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 10: APT package manager"
-	@echo -n "   Typing 'apt --version' + Enter: "
-	@adb shell input text "apt\\ --version" && adb shell input keyevent 66 && sleep 2 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 2
-	@echo ""
-	@echo "🔍 Test 11: Clear screen for visibility"
-	@echo -n "   Typing 'clear' + Enter: "
-	@adb shell input text "clear" && adb shell input keyevent 66 && sleep 1 && echo "✅ Sent" || echo "❌ FAILED"
-	@sleep 1
-	@echo ""
-	@echo "═══════════════════════════════════════════════════════════════"
-	@echo "🏁 User simulation completed!"
-	@echo ""
-	@echo "📋 Commands tested via UI input:"
-	@echo "   ✓ pwd - Working directory check"
-	@echo "   ✓ source .profile - Environment setup"
-	@echo "   ✓ node --version - Node.js runtime"
-	@echo "   ✓ npm --version - Package manager"
-	@echo "   ✓ ls /usr/bin - Available commands"
-	@echo "   ✓ echo \$$PATH - Environment variables"
-	@echo "   ✓ command -v codex - AI tools availability"
-	@echo "   ✓ file /usr/bin/node - Symbolic link verification"
-	@echo "   ✓ ldd /usr/bin/node - Library dependencies"
-	@echo "   ✓ apt --version - Package management"
-	@echo ""
-	@echo "📱 Check the Termux app screen to see command results"
-	@echo "   Use 'adb shell screencap' to capture screen if needed"
+	@APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-user-test.sh
 
