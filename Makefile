@@ -278,10 +278,14 @@ sop-help:
 	@echo "  make sop-update PACKAGE_NAME=nodejs      # Updates TermuxInstaller.java if needed"
 	@echo "  make sop-build                           # Build and test integration"
 	@echo ""
+	@echo "Package Analysis:"
+	@echo "  make extract-package PACKAGE_NAME=libgmp # Extract complete package (data + control)"
+	@echo ""
 	@echo "Examples:"
 	@echo "  make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1"
 	@echo "  make sop-add-package PACKAGE_NAME=nano VERSION=8.2"
 	@echo "  make sop-list LETTER=liba                # List lib* packages"
+	@echo "  make extract-package PACKAGE_NAME=coreutils  # Analyze coreutils package"
 
 sop-add-package: sop-download sop-extract sop-analyze sop-copy sop-update sop-build
 	@echo "✅ SOP Integration completed for $(PACKAGE_NAME)"
@@ -429,6 +433,47 @@ sop-update:
 	echo ""; \
 	echo "Add ONLY the native executable entries to:"; \
 	echo "  app/src/main/java/com/termux/app/TermuxInstaller.java"
+
+# Extract complete package including both data and control files
+extract-package:
+	@if [ -z "$(PACKAGE_NAME)" ]; then \
+		echo "❌ Error: PACKAGE_NAME is required"; \
+		echo "Usage: make extract-package PACKAGE_NAME=libgmp"; \
+		exit 1; \
+	fi
+	@echo "📦 Extracting complete package: $(PACKAGE_NAME)"
+	@PACKAGE_FILE=$$(find $(PACKAGES_DIR) -name "$(PACKAGE_NAME)_*.deb" | head -1); \
+	if [ -z "$$PACKAGE_FILE" ]; then \
+		echo "❌ Package file not found for $(PACKAGE_NAME)"; \
+		echo "Available packages:"; \
+		ls $(PACKAGES_DIR)/*.deb 2>/dev/null | xargs -n1 basename || true; \
+		exit 1; \
+	fi; \
+	EXTRACT_DIR="$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete"; \
+	echo "📂 Extracting to: $$EXTRACT_DIR"; \
+	rm -rf "$$EXTRACT_DIR"; \
+	mkdir -p "$$EXTRACT_DIR"; \
+	echo "🔧 Extracting control files..."; \
+	dpkg-deb --control "$$PACKAGE_FILE" "$$EXTRACT_DIR/control"; \
+	echo "🔧 Extracting data files..."; \
+	dpkg-deb --extract "$$PACKAGE_FILE" "$$EXTRACT_DIR/data"; \
+	echo "📋 Package Information:"; \
+	echo "===================="; \
+	cat "$$EXTRACT_DIR/control/control" 2>/dev/null || echo "No control file found"; \
+	echo ""; \
+	echo "📁 Data Structure:"; \
+	echo "=================="; \
+	find "$$EXTRACT_DIR/data" -type f | head -20 | while read file; do \
+		rel_path=$${file#$$EXTRACT_DIR/data/}; \
+		file_info=$$(file "$$file" 2>/dev/null | cut -d: -f2 | sed 's/^[[:space:]]*//'); \
+		echo "$$rel_path: $$file_info"; \
+	done; \
+	total_files=$$(find "$$EXTRACT_DIR/data" -type f | wc -l); \
+	if [ $$total_files -gt 20 ]; then \
+		echo "... and $$((total_files - 20)) more files"; \
+	fi; \
+	echo ""; \
+	echo "✅ Complete extraction finished: $$EXTRACT_DIR"
 
 sop-build:
 	@echo "🔨 SOP Step 7: Build and test integration"

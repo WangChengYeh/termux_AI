@@ -4,6 +4,7 @@
 
 # Built application files
 packages/*-extract/
+packages/*-complete/
 build/
 release/
 *.apk

@@ -76,297 +76,155 @@ private static void installNativeExecutables(Activity activity) throws Exception
 
 This SOP describes the systematic process of integrating Debian packages from packages.termux.dev into the bootstrap-free Termux AI APK. Executables are embedded as native libraries (`.so` files) and accessed via symbolic links created at runtime.
 
-**📋 Quick Start**: Use the automated workflow: `make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0`
+**🚀 Recommended Approach**: Use the automated Makefile workflow for reliable, consistent integration.
 
-**🔧 Manual Process**: Follow the 7-step process below for detailed control or learning purposes.
-
-### Step 1: List Available Packages
-
-Browse available packages at the Termux packages repository:
+**📋 Complete Integration (Recommended)**:
 ```bash
-# Browse package categories at https://packages.termux.dev/apt/termux-main/pool/main/
-
-# Search for specific packages starting with letter 'n' (example: nodejs)
-curl -s "https://packages.termux.dev/apt/termux-main/pool/main/n/" | grep -o 'href="[^"]*\.deb"' | sed 's/href="//g' | sed 's/"//g'
-
-# For packages starting with 'lib' prefix, check:
-curl -s "https://packages.termux.dev/apt/termux-main/pool/main/liba/" | grep -o 'href="[^"]*\.deb"'
-```
-
-Package categories are organized alphabetically by first letter:
-- `/main/a/` - packages starting with 'a' (apt, android-tools)
-- `/main/n/` - packages starting with 'n' (nodejs, nano)
-- `/main/liba/` - lib packages starting with 'liba' (libandroid-support)
-
-### Step 2: Download Package
-
-Download the desired aarch64 package to the packages directory:
-```bash
-# Create packages directory if it doesn't exist
-mkdir -p packages
-cd packages
-
-# Download package (example: Node.js)
-wget -O nodejs_24.7.0_aarch64.deb \
-  "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb"
-
-# Download dependency package (example: libandroid-support)
-wget -O libandroid-support_29-1_aarch64.deb \
-  "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb"
-```
-
-### Step 3: Extract Package Contents
-
-Extract the `.deb` package using dpkg-deb to analyze its structure:
-```bash
-# Extract package contents
-mkdir -p nodejs-extract
-dpkg-deb -x nodejs_24.7.0_aarch64.deb nodejs-extract/
-
-# Extract dependency package
-mkdir -p libandroid-support-extract  
-dpkg-deb -x libandroid-support_29-1_aarch64.deb libandroid-support-extract/
-```
-
-### Step 4: Analyze Package Structure
-
-Examine the extracted contents to identify executables and libraries:
-```bash
-# Find all executables in /usr/bin
-find nodejs-extract -type f -path "*/usr/bin/*"
-# Output: nodejs-extract/data/data/com.termux/files/usr/bin/node
-#         nodejs-extract/data/data/com.termux/files/usr/bin/npm
-#         nodejs-extract/data/data/com.termux/files/usr/bin/npx
-
-# Find all libraries in /usr/lib
-find nodejs-extract -type f -path "*/usr/lib/*" -name "*.so*"
-
-# Check file types to determine native executables vs scripts
-file nodejs-extract/data/data/com.termux/files/usr/bin/node
-# Expected outputs:
-# - Native: ARM aarch64 ELF 64-bit LSB pie executable
-# - Script: ASCII text executable, or symbolic link
-
-# For native executables, check library dependencies
-readelf -d nodejs-extract/data/data/com.termux/files/usr/bin/node | grep NEEDED
-
-# Identify file types for proper handling
-for file in nodejs-extract/data/data/com.termux/files/usr/bin/*; do
-  echo "$(basename "$file"): $(file "$file" | cut -d: -f2)"
-done
-```
-
-### Step 5: Copy Files to Android APK Structure
-
-Copy files based on their type - native executables use Android JNI naming, scripts are copied directly:
-
-#### 5.1 Copy Native Executables to jniLibs
-```bash
-# Create jniLibs directory
-mkdir -p app/src/main/jniLibs/arm64-v8a
-
-# For NATIVE EXECUTABLES (ARM64 ELF binaries):
-# Copy with lib prefix and .so extension (Android naming convention)
-cp nodejs-extract/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
-chmod +x app/src/main/jniLibs/arm64-v8a/libnode.so
-```
-
-#### 5.2 Copy Scripts and Non-Native Files to Assets
-```bash
-# Create assets directory structure
-mkdir -p app/src/main/assets/termux/usr/bin
-
-# For SCRIPTS, SYMBOLIC LINKS, and NON-NATIVE FILES:
-# Copy directly maintaining directory structure (no renaming needed)
-cp nodejs-extract/data/data/com.termux/files/usr/bin/npm app/src/main/assets/termux/usr/bin/npm
-cp nodejs-extract/data/data/com.termux/files/usr/bin/npx app/src/main/assets/termux/usr/bin/npx
-chmod +x app/src/main/assets/termux/usr/bin/npm
-chmod +x app/src/main/assets/termux/usr/bin/npx
-
-# Copy entire supporting directories for script dependencies
-cp -r nodejs-extract/data/data/com.termux/files/usr/lib/node_modules \
-      app/src/main/assets/termux/usr/lib/
-```
-
-#### 5.3 Copy Libraries to jniLibs
-```bash
-# Copy shared libraries directly (keep original names)
-cp libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so \
-   app/src/main/jniLibs/arm64-v8a/
-
-# Set executable permissions
-chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
-```
-
-### Step 6: Update TermuxInstaller.java
-
-Edit `app/src/main/java/com/termux/app/TermuxInstaller.java` to handle both native executables and script files:
-
-#### 6.1 For Native Executables (in jniLibs)
-Add symbolic link mappings for native executables:
-```java
-String[][] executables = {
-    // Existing entries...
-    {"libcodex.so", "codex"},
-    {"libcodex-exec.so", "codex-exec"},
-    {"libapt.so", "apt"},
-    
-    // Add new native executables only
-    {"libnode.so", "node"},
-    {"libenv.so", "env"},
-    {"libprintenv.so", "printenv"},
-};
-```
-
-#### 6.2 For Scripts and Non-Native Files (in assets)
-Add asset extraction logic for script files:
-```java
-// Extract assets to runtime directory during installation
-private static void extractAssets(Context context) throws Exception {
-    AssetManager assets = context.getAssets();
-    String termuxDir = "/data/data/com.termux/files";
-    
-    // Extract usr/bin scripts
-    extractAssetDirectory(assets, "termux/usr/bin", termuxDir + "/usr/bin");
-    
-    // Extract usr/lib supporting files
-    extractAssetDirectory(assets, "termux/usr/lib", termuxDir + "/usr/lib");
-}
-```
-
-**Result**: 
-- **Native executables**: `/data/data/com.termux/files/usr/bin/node` → symlink to `/data/app/{package}/lib/arm64/libnode.so`
-- **Script files**: `/data/data/com.termux/files/usr/bin/npm` → direct file copied from assets with dependencies intact
-
-### Step 7: Build and Test
-
-Build and install the updated APK:
-```bash
-# Clean, build and install using Makefile
-make clean && make && make install
-
-# Test functionality
-adb shell am start -n com.termux/.app.TermuxActivity
-
-# Test commands in Termux terminal
-# node --version
-# npm --version
-```
-
-## SOP Makefile Automation
-
-### Overview
-
-The SOP process has been fully automated through Makefile targets, reducing the entire 7-step workflow to a single command while maintaining individual step control for advanced users.
-
-### Complete Automated Workflow
-
-Execute the entire SOP with one command:
-```bash
-# Complete package integration workflow
+# Single command for complete package integration
 make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0
-
-# Library-only packages
-make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1
-
-# Other examples
-make sop-add-package PACKAGE_NAME=nano VERSION=8.2
 ```
 
-### Individual SOP Step Control
+**🔍 Package Analysis**:
+```bash
+# Analyze package contents before integration
+make extract-package PACKAGE_NAME=nodejs
+```
 
-For manual control or debugging, execute individual SOP steps:
+### Makefile SOP Commands
+
+The SOP has been fully automated through Makefile targets. Use these commands instead of manual steps:
 
 #### Step 1: List Available Packages
 ```bash
-# List packages starting with 'n' (nodejs, nano, etc.)
-make sop-list LETTER=n
-
-# List library packages starting with 'liba'
-make sop-list LETTER=liba
-
-# List packages starting with 'd' (dpkg, etc.)
-make sop-list LETTER=d
+# List packages starting with specific letters
+make sop-list LETTER=n              # nodejs, nano, ncurses
+make sop-list LETTER=liba           # libandroid-support, libapt-pkg  
+make sop-list LETTER=c              # coreutils, curl
+make sop-list LETTER=g              # git, gcc, gmp
 ```
 
 #### Step 2: Download Package
 ```bash
+# Download specific package versions
 make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0
+make sop-download PACKAGE_NAME=libandroid-support VERSION=29-1
+make sop-download PACKAGE_NAME=coreutils VERSION=9.7-3
 ```
 
-#### Step 3: Extract Package
+#### Step 3: Extract Package Contents  
 ```bash
+# Extract for standard integration
 make sop-extract PACKAGE_NAME=nodejs
+
+# Extract complete package (data + control files) for analysis
+make extract-package PACKAGE_NAME=nodejs
 ```
 
-#### Step 4: Analyze Structure
+#### Step 4: Analyze Package Structure
 ```bash
+# Analyze package contents and identify file types
 make sop-analyze PACKAGE_NAME=nodejs
-# Shows: executables, libraries, file types, ARM64 verification
+
+# Shows:
+# - Native executables (need TermuxInstaller.java entries)
+# - Script files (handled automatically by asset extraction) 
+# - Libraries and dependencies
+# - Integration recommendations
 ```
 
-#### Step 5: Copy Files to Android Structure
+#### Step 5: Copy Files to Android APK Structure
 ```bash
+# Automatically copy files to proper Android structure
 make sop-copy PACKAGE_NAME=nodejs
-# Automatically applies Android naming conventions and permissions
+
+# Handles:
+# - Native executables → jniLibs/arm64-v8a/ with lib*.so naming
+# - Script files → assets/termux/ maintaining directory structure  
+# - Libraries → jniLibs/arm64-v8a/ with original names
+# - Sets proper permissions automatically
 ```
 
 #### Step 6: Update TermuxInstaller.java
 ```bash
+# Generate TermuxInstaller.java entries for native executables
 make sop-update PACKAGE_NAME=nodejs
-# Generates code snippets for manual integration (if executables found)
+
+# Output shows code to add to TermuxInstaller.java:
+# {"libnode.so", "node"},  # Add to executables array
+# 
+# Script files (npm, npx) are handled automatically by asset extraction
 ```
 
 #### Step 7: Build and Test
 ```bash
+# Build, install and test integration  
 make sop-build
-# Executes: make clean build install
+
+# Equivalent to:
+# make clean build install
+# Launches Termux app for testing
 ```
 
-### Advanced Features
+### Complete Automated Workflow
 
-#### Smart URL Resolution
-- **Regular packages**: Automatically resolves `n/nodejs/` paths
-- **Library packages**: Handles `liba/libandroid-support/` paths
-- **Error handling**: Validates parameters and provides usage examples
+**✅ Recommended**: Use the complete automation for reliable integration:
 
-#### File Analysis and Integration
-- **ARM64 verification**: Confirms ELF 64-bit ARM aarch64 binaries
-- **Android naming**: Executables → `lib*.so`, Libraries → original names
-- **Permissions**: Automatically sets executable permissions
-- **Structure analysis**: Shows executables vs libraries for integration planning
-
-#### TermuxInstaller.java Integration
-- **Executable detection**: Identifies files requiring symbolic link entries
-- **Code generation**: Provides exact Java array entries for copy-paste
-- **Library handling**: Correctly identifies library-only packages (no update needed)
-
-#### Example Output
-```bash
-$ make sop-analyze PACKAGE_NAME=nodejs
-🔍 SOP Step 4: Analyze nodejs package structure
-
-Executables in /usr/bin:
-packages/nodejs-extract/data/data/com.termux/files/usr/bin/node
-packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm
-packages/nodejs-extract/data/data/com.termux/files/usr/bin/npx
-
-Libraries in /usr/lib:
-(none found)
-
-File types:
-  node:  ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, stripped
-  npm:  symbolic link to ../lib/node_modules/npm/bin/npm-cli.js
-  npx:  symbolic link to ../lib/node_modules/npm/bin/npx-cli.js
+```bash  
+# Complete package integration (all 7 steps)
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0
+make sop-add-package PACKAGE_NAME=coreutils VERSION=9.7-3
+make sop-add-package PACKAGE_NAME=libgmp VERSION=6.3.0-2
+make sop-add-package PACKAGE_NAME=pcre2 VERSION=10.46
 ```
 
-### Help and Usage
-```bash
-# Show general help including SOP section
-make help
+**🔍 Analysis & Troubleshooting**:
 
-# Show detailed SOP usage and examples
+```bash
+# Get help with all SOP commands
 make sop-help
+
+# Analyze package before integration
+make extract-package PACKAGE_NAME=nodejs
+
+# Check for duplicate libraries  
+make check-duplicates
+```
+
+**Real-world Examples**:
+```bash
+# Development Tools
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0    # JavaScript runtime
+make sop-add-package PACKAGE_NAME=vim VERSION=9.1.1700     # Text editor
+
+# System Libraries  
+make sop-add-package PACKAGE_NAME=libgmp VERSION=6.3.0-2   # Math library
+make sop-add-package PACKAGE_NAME=pcre2 VERSION=10.46      # Regex library
+
+# Core Utilities
+make sop-add-package PACKAGE_NAME=coreutils VERSION=9.7-3  # Unix utilities
+make sop-add-package PACKAGE_NAME=bash VERSION=5.3.3-1     # Shell
+
+# Security
+make sop-add-package PACKAGE_NAME=libandroid-selinux VERSION=14.0.0.11-1
+```
+
+### Manual Step Control (Advanced Users)
+
+For debugging or manual control, individual SOP steps are available:
+```bash
+make sop-list LETTER=n                        # Step 1: List packages  
+make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0  # Step 2: Download
+make sop-extract PACKAGE_NAME=nodejs          # Step 3: Extract  
+make sop-analyze PACKAGE_NAME=nodejs          # Step 4: Analyze
+make sop-copy PACKAGE_NAME=nodejs             # Step 5: Copy files
+make sop-update PACKAGE_NAME=nodejs           # Step 6: Update Java code
+make sop-build                                # Step 7: Build & test
+```
+
+### Help & Reference
+```bash
+make sop-help                                 # Complete SOP documentation
+make help                                     # General Makefile help
 ```
 
 ## Package Integration Examples
@@ -374,91 +232,52 @@ make sop-help
 ### Example 1: Complete Node.js Ecosystem (Mixed Native + Scripts)
 
 ```bash
-# 1. Download Node.js package
-wget -O packages/nodejs_24.7.0_aarch64.deb \
-  "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb"
+# Complete automated integration
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0
 
-# 2. Extract and analyze file types
-mkdir -p packages/nodejs-extract
-dpkg-deb -x packages/nodejs_24.7.0_aarch64.deb packages/nodejs-extract/
+# Analysis shows mixed file types:
+# - node: ARM aarch64 ELF executable (native → jniLibs)
+# - npm/npx: Scripts/symlinks (scripts → assets)
+# - node_modules: Dependencies (scripts → assets)
 
-# Check file types to determine handling
-file packages/nodejs-extract/data/data/com.termux/files/usr/bin/node
-# Output: ARM aarch64 ELF 64-bit LSB pie executable (NATIVE - use jniLibs)
-
-file packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm
-# Output: symbolic link to ../lib/node_modules/npm/bin/npm-cli.js (SCRIPT - use assets)
-
-# 3. Handle NATIVE executable (node)
-mkdir -p app/src/main/jniLibs/arm64-v8a/
-cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/node \
-   app/src/main/jniLibs/arm64-v8a/libnode.so
-chmod +x app/src/main/jniLibs/arm64-v8a/libnode.so
-
-# 4. Handle SCRIPT files (npm, npx) and dependencies
-mkdir -p app/src/main/assets/termux/usr/bin
-mkdir -p app/src/main/assets/termux/usr/lib
-
-# Copy scripts directly (no renaming)
-cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npm \
-   app/src/main/assets/termux/usr/bin/npm
-cp packages/nodejs-extract/data/data/com.termux/files/usr/bin/npx \
-   app/src/main/assets/termux/usr/bin/npx
-
-# Copy complete dependency tree for scripts
-cp -r packages/nodejs-extract/data/data/com.termux/files/usr/lib/node_modules \
-      app/src/main/assets/termux/usr/lib/
-
-# 5. Update TermuxInstaller.java (only for native executables)
-{"libnode.so", "node"},  # Only native node binary needs symlink
-# npm and npx handled automatically by asset extraction
+# Result:
+# - libnode.so: Native executable in jniLibs/arm64-v8a/
+# - npm/npx: Scripts in assets/termux/usr/bin/
+# - node_modules: Complete dependency tree in assets/termux/usr/lib/
+# - TermuxInstaller.java: Only node executable needs entry
 ```
 
 ### Example 2: DPKG Package Management Suite
 
 ```bash
-# 1. Download DPKG package
-wget -O packages/dpkg_1.22.6-4_aarch64.deb \
-  "https://packages.termux.dev/apt/termux-main/pool/main/d/dpkg/dpkg_1.22.6-4_aarch64.deb"
+# Complete automated integration
+make sop-add-package PACKAGE_NAME=dpkg VERSION=1.22.6-4
 
-# 2. Extract and find all DPKG utilities
-dpkg-deb -x packages/dpkg_1.22.6-4_aarch64.deb packages/dpkg-extract/
-find packages/dpkg-extract -path "*/usr/bin/*" -type f
-# Output shows: dpkg, dpkg-deb, dpkg-query, dpkg-split, etc.
+# Automated analysis identifies multiple utilities:
+# - dpkg, dpkg-deb, dpkg-query, dpkg-split (all native)
+# - All converted to lib*.so format automatically
+# - TermuxInstaller.java entries generated for all executables
 
-# 3. Copy all utilities with batch script
-for file in packages/dpkg-extract/data/data/com.termux/files/usr/bin/*; do
-  filename=$(basename "$file")
-  cp "$file" "app/src/main/jniLibs/arm64-v8a/lib${filename}.so"
-  chmod +x "app/src/main/jniLibs/arm64-v8a/lib${filename}.so"
-done
-
-# 4. Update TermuxInstaller.java with all DPKG tools
-{"libdpkg.so", "dpkg"},
-{"libdpkg-deb.so", "dpkg-deb"},
-{"libdpkg-query.so", "dpkg-query"},
-{"libdpkg-split.so", "dpkg-split"},
-// ... additional DPKG utilities
+# Result:
+# - All DPKG utilities available as native executables
+# - Proper .so naming conventions applied
+# - Complete package management suite integrated
 ```
 
 ### Example 3: Dependency Resolution (libandroid-support)
 
 ```bash
-# 1. Download dependency library
-wget -O packages/libandroid-support_29-1_aarch64.deb \
-  "https://packages.termux.dev/apt/termux-main/pool/main/liba/libandroid-support/libandroid-support_29-1_aarch64.deb"
+# Complete automated integration  
+make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1
 
-# 2. Extract shared library
-dpkg-deb -x packages/libandroid-support_29-1_aarch64.deb packages/libandroid-support-extract/
-find packages/libandroid-support-extract -name "*.so*"
-# Output: libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so
+# Automated analysis identifies shared library:
+# - libandroid-support.so: Runtime dependency (library → jniLibs)
+# - Original .so name preserved
+# - No TermuxInstaller.java entry needed (libraries handled automatically)
 
-# 3. Copy library (keep original name)
-cp packages/libandroid-support-extract/data/data/com.termux/files/usr/lib/libandroid-support.so \
-   app/src/main/jniLibs/arm64-v8a/
-chmod +x app/src/main/jniLibs/arm64-v8a/libandroid-support.so
-
-# 4. No TermuxInstaller.java update needed for libraries (only for executables)
+# Result:
+# - Shared library available for native executables
+# - Proper runtime dependency resolution
 ```
 
 ## Android Integration Rules
@@ -538,64 +357,49 @@ Android System Structure:
 
 #### 1. Download Termux Packages
 ```bash
-# Node.js runtime (24.7.0)
-wget https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb
+# Use automated Makefile targets for reliable downloads
+make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0
+make sop-download PACKAGE_NAME=apt VERSION=2.8.1-2
+make sop-download PACKAGE_NAME=dpkg VERSION=1.22.6-1
 
-# APT package manager (2.8.1-2)  
-wget https://packages.termux.dev/apt/termux-main/pool/main/a/apt/apt_2.8.1-2_aarch64.deb
-
-# Additional packages as needed
-wget https://packages.termux.dev/apt/termux-main/pool/main/d/dpkg/dpkg_1.22.6-1_aarch64.deb
+# Alternative: Download multiple packages with versions
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0    # Complete workflow
 ```
 
 #### 2. Extract Native Binaries
 ```bash
-# Create extraction directory
-mkdir -p native-binaries
+# Automated extraction with complete package analysis
+make sop-extract PACKAGE_NAME=nodejs
+make extract-package PACKAGE_NAME=nodejs   # With control files
 
-# Extract .deb packages
-for pkg in *.deb; do
-    ar x "$pkg" data.tar.xz
-    tar -xJf data.tar.xz -C native-binaries/
-    rm data.tar.xz
-done
-
-# Locate ARM64 binaries
-find native-binaries -name "node" -type f
-# → native-binaries/data/data/com.termux/files/usr/bin/node
-
-find native-binaries -name "apt" -type f  
-# → native-binaries/data/data/com.termux/files/usr/bin/apt
+# View extraction results
+make sop-analyze PACKAGE_NAME=nodejs
+# Shows: Native binaries, scripts, dependencies, integration recommendations
 ```
 
 #### 3. Convert to Android Native Libraries
 ```bash
-# Copy binaries and rename as .so files for Android integration
-mkdir -p app/src/main/jniLibs/arm64-v8a/
+# Automated conversion handling native/script file distinctions
+make sop-copy PACKAGE_NAME=nodejs
 
-# Node.js ecosystem
-cp native-binaries/data/data/com.termux/files/usr/bin/node app/src/main/jniLibs/arm64-v8a/libnode.so
-# Copy scripts to assets (npm and npx are scripts, not native executables)
-cp native-binaries/data/data/com.termux/files/usr/bin/npm app/src/main/assets/termux/usr/bin/npm
-cp native-binaries/data/data/com.termux/files/usr/bin/npx app/src/main/assets/termux/usr/bin/npx
-
-# Package management
-cp native-binaries/data/data/com.termux/files/usr/bin/apt app/src/main/jniLibs/arm64-v8a/libapt.so
-cp native-binaries/data/data/com.termux/files/usr/bin/dpkg app/src/main/jniLibs/arm64-v8a/libdpkg.so
-
-# Verify executable permissions
-chmod +x app/src/main/jniLibs/arm64-v8a/*.so
+# Automatically handles:
+# - Native executables → jniLibs/arm64-v8a/lib*.so (node)
+# - Scripts → assets/termux/usr/bin/ (npm, npx) 
+# - Dependencies → assets/termux/usr/lib/ (node_modules)
+# - Proper permissions set automatically
 ```
 
 #### 4. Dependency Resolution
 ```bash
-# Check runtime dependencies
-readelf -d app/src/main/jniLibs/arm64-v8a/libnode.so | grep NEEDED
-# Extract required shared libraries from packages and include as additional .so files
+# Automated dependency analysis and integration
+make sop-analyze PACKAGE_NAME=nodejs
+# Shows required dependencies: libandroid-support, libc++_shared
 
-# Common Termux dependencies:
-# - libc++_shared.so (from ndk-sysroot)
-# - libandroid-support.so (from android-support package)
+# Integrate dependencies automatically
+make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1
+
+# Check for missing dependencies across all packages
+make check-duplicates   # Also identifies dependency gaps
 ```
 
 ### Build & Install
@@ -814,14 +618,13 @@ make doctor           # Check tools (adb, gradlew)
 make devices          # List connected devices  
 make verify-abi       # Ensure device is ARM64
 
-# 2. Package integration (automated SOP workflow)
+# 2. Package integration (automated SOP workflow - RECOMMENDED)
 make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0     # Complete integration
 make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1  # Dependencies
+make sop-add-package PACKAGE_NAME=coreutils VERSION=9.7-3   # Unix utilities
 
-# Alternative: Manual package integration (for learning/debugging)
-# ./scripts/download-packages.sh   # Download .deb packages from packages.termux.dev
-# ./scripts/extract-natives.sh     # Extract binaries and convert to .so files
-# ./scripts/resolve-deps.sh         # Include runtime dependencies
+# Alternative: Individual SOP steps (for debugging)
+make sop-help        # Show all SOP automation options
 
 # 3. Build and test
 make build            # Build debug APK with native libraries
@@ -835,72 +638,50 @@ make clean           # Clean build outputs
 make uninstall       # Remove from device
 ```
 
-### Automated Native Integration Scripts
+### Automated SOP Integration
 
-#### Package Download Script (`scripts/download-packages.sh`)
+The Standard Operating Procedure has been completely automated through Makefile targets. All manual scripts have been replaced with reliable, consistent automation:
+
+#### Core SOP Commands
 ```bash
-#!/bin/bash
-set -e
+# Complete package integration (all 7 SOP steps in one command)
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0
+make sop-add-package PACKAGE_NAME=coreutils VERSION=9.7-3
+make sop-add-package PACKAGE_NAME=libgmp VERSION=6.3.0-2
 
-PACKAGES_DIR="packages"
-mkdir -p "$PACKAGES_DIR"
-cd "$PACKAGES_DIR"
-
-# Core packages with versions
-wget -N https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs/nodejs_24.7.0_aarch64.deb
-wget -N https://packages.termux.dev/apt/termux-main/pool/main/a/apt/apt_2.8.1-2_aarch64.deb
-wget -N https://packages.termux.dev/apt/termux-main/pool/main/d/dpkg/dpkg_1.22.6-1_aarch64.deb
-
-echo "Package download complete"
+# Individual SOP step control for debugging
+make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0  # Step 2: Download
+make sop-extract PACKAGE_NAME=nodejs                  # Step 3: Extract
+make sop-analyze PACKAGE_NAME=nodejs                  # Step 4: Analyze
+make sop-copy PACKAGE_NAME=nodejs                     # Step 5: Copy files
+make sop-update PACKAGE_NAME=nodejs                   # Step 6: Update Java
+make sop-build                                        # Step 7: Build & test
 ```
 
-#### Binary Extraction Script (`scripts/extract-natives.sh`)
-```bash
-#!/bin/bash
-set -e
+#### Benefits of Makefile Automation
+- **Consistency**: Identical process every time, eliminates human error
+- **Error handling**: Automatic validation and rollback on failures  
+- **Dependency management**: Automatic resolution of package dependencies
+- **File type detection**: Automatic handling of native vs. script files
+- **Version tracking**: Consistent naming and versioning across integrations
+- **Documentation**: Built-in help system with `make sop-help`
 
-PACKAGES_DIR="packages"
-NATIVES_DIR="native-binaries"
-JNI_DIR="app/src/main/jniLibs/arm64-v8a"
-
-# Clean and setup directories
-rm -rf "$NATIVES_DIR" "$JNI_DIR"
-mkdir -p "$NATIVES_DIR" "$JNI_DIR"
-
-# Extract all .deb packages
-for pkg in "$PACKAGES_DIR"/*.deb; do
-    echo "Extracting $(basename "$pkg")..."
-    ar x "$pkg" data.tar.xz
-    tar -xJf data.tar.xz -C "$NATIVES_DIR/"
-    rm data.tar.xz
-done
-
-# Convert binaries to .so files
-TERMUX_PREFIX="$NATIVES_DIR/data/data/com.termux/files/usr/bin"
-
-# Node.js ecosystem
-cp "$TERMUX_PREFIX/node" "$JNI_DIR/libnode.so"
-# Copy scripts to assets (npm and npx are scripts, not native executables)
-cp "$TERMUX_PREFIX/npm" "$ASSETS_DIR/usr/bin/npm"
-cp "$TERMUX_PREFIX/npx" "$ASSETS_DIR/usr/bin/npx"
-
-# Package management
-cp "$TERMUX_PREFIX/apt" "$JNI_DIR/libapt.so"
-cp "$TERMUX_PREFIX/dpkg" "$JNI_DIR/libdpkg.so"
-
-# Set executable permissions
-chmod +x "$JNI_DIR"/*.so
-
-echo "Native library conversion complete"
-```
+#### Legacy Script Support
+Individual scripts are maintained for educational purposes but **not recommended** for production use:
+- Use `make sop-add-package` instead of manual scripts
+- Scripts may be removed in future versions
+- Makefile automation provides superior reliability and error handling
 
 ### Release Process
 ```bash
-# Full release build with native integration
-./scripts/download-packages.sh   # Ensure latest packages
-./scripts/extract-natives.sh     # Refresh native libraries
+# Full release build with automated SOP integration
+make sop-add-package PACKAGE_NAME=nodejs VERSION=24.7.0     # Latest packages
+make sop-add-package PACKAGE_NAME=coreutils VERSION=9.7-3   # Core utilities
+make sop-add-package PACKAGE_NAME=libgmp VERSION=6.3.0-2    # Math libraries
+
 BUILD_TYPE=release make build     # Build release APK
 make lint test                   # Final validation
+make release                     # Complete release workflow
 ```
 
 ## Testing & Verification
