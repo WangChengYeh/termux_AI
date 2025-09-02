@@ -17,7 +17,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-add-package
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-add-package
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -48,6 +48,7 @@ help:
 	@echo "  sop-copy        - Copy package files to Android structure"
 	@echo "  sop-update      - Update TermuxInstaller.java (if needed)"
 	@echo "  sop-build       - Build and test integration"
+	@echo "  sop-test        - Interactive command testing in live app"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -479,4 +480,40 @@ sop-build:
 	@echo "🔨 SOP Step 7: Build and test integration"
 	@$(MAKE) check-packages clean build install
 	@echo "✅ Build completed. Test functionality with: make run"
+
+sop-test:
+	@echo "🧪 SOP Interactive Testing: Type commands directly into the app"
+	@echo ""
+	@echo "This will:"
+	@echo "  1. Launch Termux AI app if not running"
+	@echo "  2. Open ADB shell to the app"
+	@echo "  3. Allow you to test commands interactively"
+	@echo ""
+	@echo "📱 Launching Termux AI..."
+	@adb shell am start -n "$(APP_ID)/.app.TermuxActivity" >/dev/null 2>&1 || true
+	@sleep 2
+	@echo "🔗 Connecting to app via ADB shell..."
+	@echo ""
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo "📋 Test these commands inside the app:"
+	@echo "   source .profile           # Load environment (done automatically)"
+	@echo "   codex --help              # Test AI CLI"
+	@echo "   codex-exec --help         # Test non-interactive AI"
+	@echo "   node --version            # Test Node.js runtime"
+	@echo "   npm --version             # Test NPM"
+	@echo "   npx --version             # Test NPX"
+	@echo "   apt --version             # Test package manager"
+	@echo "   ls /usr/bin               # List available commands"
+	@echo "   ls -la /usr/lib           # List available libraries"
+	@echo "   file /usr/bin/node        # Check if symlinks work"
+	@echo "   ldd /usr/bin/node         # Check library dependencies"
+	@echo "   echo \$$PATH               # Verify PATH environment"
+	@echo "   pwd                       # Check current directory"
+	@echo "   whoami                    # Check user context"
+	@echo "   exit                      # Exit when done testing"
+	@echo "═══════════════════════════════════════════════════════════════"
+	@echo ""
+	@echo "🚀 Starting interactive shell. Type 'exit' when done:"
+	@adb shell "run-as $(APP_ID) /system/bin/sh -c 'cd /data/data/$(APP_ID)/files/home && source /data/data/$(APP_ID)/files/home/.profile && /system/bin/sh'" || \
+	echo "❌ Could not connect to app. Make sure the app is installed and running."
 
