@@ -70,7 +70,7 @@ test:
 clean:
 	$(GRADLEW) clean
 
-install: build verify-abi
+install: uninstall build verify-abi
 	@echo "Installing: $(APK)"
 	adb install -r "$(APK)"
 

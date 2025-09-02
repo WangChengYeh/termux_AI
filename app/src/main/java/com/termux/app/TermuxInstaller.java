@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.Environment;
 import android.system.Os;
@@ -11,6 +12,7 @@ import android.view.WindowManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 import com.termux.R;
@@ -128,6 +130,9 @@ final class TermuxInstaller {
         // Create symbolic links for all native libraries
         createSymbolicLinks(activity, nativeLibDir);
         
+        // Extract assets (scripts and supporting files) to runtime directory
+        extractAssets(activity);
+        
         Logger.logInfo(LOG_TAG, "Native executables and libraries verified. Symbolic links created from: " + nativeLibDir);
     }
     
@@ -160,7 +165,8 @@ final class TermuxInstaller {
             {"libupdate-alternatives.so", "update-alternatives"},
             {"libnode.so", "node"},
             {"libenv.so", "env"},
-            {"libprintenv.so", "printenv"}
+            {"libprintenv.so", "printenv"},
+            {"libbash.so", "bash"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -169,13 +175,13 @@ final class TermuxInstaller {
             "libapt-private.so", 
             "libapt-pkg.so",
             "libc++_shared.so",
-            "libz.so",
+            "libz1.so",
             "libcares.so",
-            "libbz2.so",
+            "libbz210.so",
             "libsqlite3.so",
             "libcrypto3.so",
             "libssl3.so",
-            "liblzma.so",
+            "liblzma5.so",
             "libicudata771.so",
             "libicui18n771.so",
             "libicuio771.so",
@@ -188,24 +194,31 @@ final class TermuxInstaller {
             "libgcrypt.so",
             "libgpg-error.so",
             "libmd.so",
-            "libandroid-support.so"
+            "libandroid-support.so",
+            "libreadline83.so",
+            "libhistory83.so",
+            "libncursesw6.so",
+            "libncurses6.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
         String[][] versionSymlinks = {
             // zlib versions
-            {"libz.so", "libz.so.1"},
-            {"libz.so", "libz.so.1.3.1"},
+            {"libz1.so", "libz.so"},
+            {"libz1.so", "libz.so.1"},
+            {"libz1.so", "libz.so.1.3.1"},
             // bz2 versions  
-            {"libbz2.so", "libbz2.so.1.0"},
+            {"libbz210.so", "libbz2.so"},
+            {"libbz210.so", "libbz2.so.1.0"},
             // sqlite versions
             {"libsqlite3.so", "libsqlite3.so.0"},
             // openssl versions
             {"libcrypto3.so", "libcrypto.so.3"},
             {"libssl3.so", "libssl.so.3"},
             // lzma versions
-            {"liblzma.so", "liblzma.so.5"},
-            {"liblzma.so", "liblzma.so.5.8.1"},
+            {"liblzma5.so", "liblzma.so"},
+            {"liblzma5.so", "liblzma.so.5"},
+            {"liblzma5.so", "liblzma.so.5.8.1"},
             // ICU versions  
             {"libicudata771.so", "libicudata.so.77.1"},
             {"libicui18n771.so", "libicui18n.so.77.1"},
@@ -222,7 +235,18 @@ final class TermuxInstaller {
             // zstd versions
             {"libzstd1.so", "libzstd.so.1"},
             // xxhash versions
-            {"libxxhash0.so", "libxxhash.so.0"}
+            {"libxxhash0.so", "libxxhash.so.0"},
+            // readline versions
+            {"libreadline83.so", "libreadline.so"},
+            {"libreadline83.so", "libreadline.so.8"},
+            // history versions
+            {"libhistory83.so", "libhistory.so"},
+            {"libhistory83.so", "libhistory.so.8"},
+            // ncurses versions
+            {"libncursesw6.so", "libncursesw.so"},
+            {"libncursesw6.so", "libncursesw.so.6"},
+            {"libncurses6.so", "libncurses.so"},
+            {"libncurses6.so", "libncurses.so.6"}
         };
         
         // Create symlinks for executables in /usr/bin
@@ -316,6 +340,92 @@ final class TermuxInstaller {
         Os.chmod(profile.getAbsolutePath(), 0644);
         
         Logger.logInfo(LOG_TAG, "Created .profile with PATH and LD_LIBRARY_PATH configuration");
+    }
+    
+    /**
+     * Extract assets (scripts and supporting files) to runtime directory
+     */
+    private static void extractAssets(Context context) throws Exception {
+        AssetManager assets = context.getAssets();
+        String termuxDir = TermuxConstants.TERMUX_PREFIX_DIR_PATH;
+        
+        Logger.logInfo(LOG_TAG, "Extracting assets to: " + termuxDir);
+        
+        // Extract usr/bin scripts
+        extractAssetDirectory(assets, "termux/usr/bin", termuxDir + "/bin");
+        
+        // Extract usr/lib supporting files (including node_modules)
+        extractAssetDirectory(assets, "termux/usr/lib", termuxDir + "/lib");
+        
+        Logger.logInfo(LOG_TAG, "Assets extracted successfully");
+    }
+    
+    /**
+     * Recursively extract asset directory to target directory
+     */
+    private static void extractAssetDirectory(AssetManager assets, String assetPath, String targetDir) throws Exception {
+        String[] files;
+        try {
+            files = assets.list(assetPath);
+        } catch (IOException e) {
+            Logger.logInfo(LOG_TAG, "No assets found at: " + assetPath);
+            return;
+        }
+        
+        if (files == null || files.length == 0) {
+            // This is a file, not a directory - extract it
+            extractAssetFile(assets, assetPath, targetDir);
+            return;
+        }
+        
+        // This is a directory - create it and recurse
+        File targetDirFile = new File(targetDir);
+        if (!targetDirFile.exists()) {
+            targetDirFile.mkdirs();
+        }
+        
+        for (String file : files) {
+            String childAssetPath = assetPath + "/" + file;
+            String childTargetPath = targetDir + "/" + file;
+            extractAssetDirectory(assets, childAssetPath, childTargetPath);
+        }
+    }
+    
+    /**
+     * Extract a single asset file to target path
+     */
+    private static void extractAssetFile(AssetManager assets, String assetPath, String targetPath) throws Exception {
+        File targetFile = new File(targetPath);
+        
+        // Skip if file already exists and is not empty
+        if (targetFile.exists() && targetFile.length() > 0) {
+            return;
+        }
+        
+        // Create parent directory if needed
+        File parentDir = targetFile.getParentFile();
+        if (parentDir != null && !parentDir.exists()) {
+            parentDir.mkdirs();
+        }
+        
+        try (InputStream inputStream = assets.open(assetPath);
+             FileOutputStream outputStream = new FileOutputStream(targetFile)) {
+            
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        }
+        
+        // Set executable permissions for files in bin directory
+        if (targetPath.contains("/bin/")) {
+            Os.chmod(targetFile.getAbsolutePath(), 0755);
+        } else {
+            Os.chmod(targetFile.getAbsolutePath(), 0644);
+        }
+        
+        Logger.logInfo(LOG_TAG, "Extracted asset: " + assetPath + " -> " + targetPath);
     }
     
 
