@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# SOP User Testing Script - Automated UI testing via ADB input commands
-# This script simulates user interactions with the Termux AI app terminal
+# SOP User Testing Script - Pure input method with direct redirection
+# This script uses adb shell "input text 'command > log'" approach
 
 set -e
 
@@ -9,7 +9,7 @@ set -e
 APP_ID="${APP_ID:-com.termux}"
 MAIN_ACTIVITY="${MAIN_ACTIVITY:-com.termux.app.TermuxActivity}"
 LOG_FILE="sop-test.log"
-LOG_FILE_FULL="/data/data/${APP_ID}/files/home/sop-test.log"
+OUTPUT_DIR="${OUTPUT_DIR:-$(pwd)}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -54,22 +54,7 @@ check_adb() {
     fi
 }
 
-# Send text input to the app
-send_input() {
-    local text="$1"
-    local description="$2"
-    
-    echo -n "   $description: "
-    if adb shell input text "$text" && adb shell input keyevent 66; then
-        log_success "✅ Sent"
-        return 0
-    else
-        log_error "❌ FAILED"
-        return 1
-    fi
-}
-
-# Send command with logging to file
+# Send command with direct input redirection
 send_command_with_logging() {
     local command="$1"
     local description="$2"
@@ -77,31 +62,18 @@ send_command_with_logging() {
     
     echo -n "   $description: "
     
-    # First add the separator via direct ADB command
-    adb shell "run-as $APP_ID /system/bin/sh -c 'cd /data/data/$APP_ID/files/home && echo \"=== $test_name ===\" >> sop-test.log'" 2>/dev/null
-    
-    # Send the actual command through UI
-    if adb shell input text "$command" && adb shell input keyevent 66; then
-        log_success "✅ Sent"
-        sleep 2
-        
-        # Clean command for execution (remove escaping)
-        local clean_command=$(echo "$command" | sed 's/\\//g')
-        
-        # Capture the output via ADB with proper environment and append to log
-        local temp_output=$(adb shell "run-as $APP_ID /system/bin/sh -c '
-            cd /data/data/$APP_ID/files/home
-            export HOME=/data/data/$APP_ID/files/home
-            export PREFIX=/data/data/$APP_ID/files/usr  
-            export PATH=/data/data/$APP_ID/files/usr/bin:\$PATH
-            export LD_LIBRARY_PATH=/data/data/$APP_ID/files/usr/lib:\$LD_LIBRARY_PATH
-            if [ -f .profile ]; then source .profile 2>/dev/null; fi
-            $clean_command 2>&1
-        '" 2>/dev/null || echo "Command execution failed")
-        
-        # Append result to log file
-        adb shell "run-as $APP_ID /system/bin/sh -c 'cd /data/data/$APP_ID/files/home && printf \"%s\n\" \"$temp_output\" >> sop-test.log'" 2>/dev/null
-        return 0
+    # Send test separator first
+    if adb shell "input text 'echo \"=== $test_name ===\" >> $LOG_FILE'" && adb shell "input keyevent 66"; then
+        sleep 1
+        # Send the actual command with redirection
+        if adb shell "input text '$command >> $LOG_FILE 2>&1'" && adb shell "input keyevent 66"; then
+            log_success "✅ Sent"
+            sleep 2
+            return 0
+        else
+            log_error "❌ FAILED"
+            return 1
+        fi
     else
         log_error "❌ FAILED"
         return 1
@@ -113,8 +85,8 @@ check_log_results() {
     local test_name="$1"
     echo "   📄 Results for $test_name:"
     
-    # Use adb cat to read the log file - try both absolute and relative paths
-    if adb shell "run-as $APP_ID cat \$HOME/$LOG_FILE" 2>/dev/null | grep -A 10 "=== $test_name ===" | tail -n +2 | head -10; then
+    # Use adb cat to read the log file
+    if adb shell "run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE" 2>/dev/null | grep -A 10 "=== $test_name ===" | tail -n +2 | head -10; then
         echo "   ✅ Log retrieved successfully"
     else
         log_warning "   ⚠️  Could not retrieve log or command failed"
@@ -133,105 +105,125 @@ launch_app() {
 
 # Main test execution
 run_tests() {
-    log_info "🧪 SOP User Testing: Simulating user interactions via ADB input with logging"
+    log_info "🧪 SOP User Testing: Pure input method with direct redirection"
     echo ""
     
     launch_app
     
     echo ""
     log_info "═══════════════════════════════════════════════════════════════"
-    log_info "⌨️  Simulating User Input Tests with Log Capture:"
+    log_info "⌨️  Pure Input Tests with Direct Redirection:"
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    # Initialize test environment via ADB first, then through UI
+    # Initialize test environment
     log_test "🔧 Initializing test environment"
-    echo "   Setting up log file via ADB..."
     
-    # Create log file directly via ADB run-as to ensure it works
-    if adb shell "run-as $APP_ID /system/bin/sh -c 'mkdir -p /data/data/$APP_ID/files/home && cd /data/data/$APP_ID/files/home && echo \"SOP User Test Log - \$(date)\" > sop-test.log'"; then
-        log_success "   ✅ Log file created via ADB"
+    echo -n "   Setting up directories: "
+    if adb shell "input text 'cd \$HOME'" && adb shell "input keyevent 66"; then
+        sleep 1
+        if adb shell "input text 'pwd'" && adb shell "input keyevent 66"; then
+            log_success "✅ Setup complete"
+            sleep 2
+        else
+            log_error "❌ Setup failed"
+        fi
     else
-        log_warning "   ⚠️  Could not create log file via ADB, will try through UI"
+        log_error "❌ Setup failed"
     fi
     
-    # Now test through UI
-    send_input "pwd" "Check current directory"
-    sleep 1
-    send_input "cd\\ \\\$HOME" "Change to HOME directory"
-    sleep 1
-    send_input "ls\\ -la\\ sop-test.log" "Check log file exists"
-    sleep 1
+    echo -n "   Creating log file: "
+    if adb shell "input text 'echo \"SOP User Test - \$(date)\" > $LOG_FILE'" && adb shell "input keyevent 66"; then
+        log_success "✅ Log file created"
+        sleep 2
+    else
+        log_error "❌ Log file creation failed"
+    fi
+    
     echo ""
     
     # Test 1: Basic command execution
     log_test "🔍 Test 1: Basic command execution"
-    send_command_with_logging "pwd" "Typing 'pwd' + logging" "Basic_Command"
-    sleep 2
+    send_command_with_logging "pwd" "Typing 'pwd >> log'" "Basic_Command"
     check_log_results "Basic_Command"
     
     # Test 2: Environment setup
     log_test "🔍 Test 2: Environment setup"
-    send_command_with_logging "source\\ .profile" "Typing 'source .profile' + logging" "Environment_Setup"
-    sleep 2
+    send_command_with_logging "source .profile 2>/dev/null; echo 'Profile loaded'" "Typing 'source .profile' + logging" "Environment_Setup"
     check_log_results "Environment_Setup"
     
     # Test 3: Node.js version check
     log_test "🔍 Test 3: Node.js version check"
-    send_command_with_logging "node\\ --version" "Typing 'node --version' + logging" "Node_Version"
-    sleep 3
+    send_command_with_logging "node --version" "Typing 'node --version >> log'" "Node_Version"
     check_log_results "Node_Version"
     
-    # Test 4: NPM version check  
+    # Test 4: NPM version check
     log_test "🔍 Test 4: NPM version check"
-    send_command_with_logging "npm\\ --version" "Typing 'npm --version' + logging" "NPM_Version"
-    sleep 3
+    send_command_with_logging "npm --version" "Typing 'npm --version >> log'" "NPM_Version"
     check_log_results "NPM_Version"
     
     # Test 5: List available commands
     log_test "🔍 Test 5: List available commands"
-    send_command_with_logging "ls\\ \\\$PREFIX/bin" "Typing 'ls \$PREFIX/bin' + logging" "List_Commands"
-    sleep 2
+    send_command_with_logging "ls \$PREFIX/bin | head -10" "Typing 'ls \$PREFIX/bin >> log'" "List_Commands"
     check_log_results "List_Commands"
     
     # Test 6: Check PATH environment
     log_test "🔍 Test 6: Check PATH environment"
-    send_command_with_logging "echo\\ \\\$PATH" "Typing 'echo \$PATH' + logging" "PATH_Check"
-    sleep 2
+    send_command_with_logging "echo \$PATH" "Typing 'echo \$PATH >> log'" "PATH_Check"
     check_log_results "PATH_Check"
     
     # Test 7: Test AI tools availability
     log_test "🔍 Test 7: Test AI tools availability"
-    send_command_with_logging "which\\ codex" "Typing 'which codex' + logging" "AI_Tools"
-    sleep 2
+    send_command_with_logging "which codex" "Typing 'which codex >> log'" "AI_Tools"
     check_log_results "AI_Tools"
     
     # Test 8: Test symbolic links
     log_test "🔍 Test 8: Test symbolic links"
-    send_command_with_logging "ls\\ -la\\ \\\$PREFIX/bin/node" "Typing 'ls -la \$PREFIX/bin/node' + logging" "Symbolic_Links"
-    sleep 2
+    send_command_with_logging "ls -la \$PREFIX/bin/node" "Typing 'ls -la \$PREFIX/bin/node >> log'" "Symbolic_Links"
     check_log_results "Symbolic_Links"
     
     # Test 9: Check library path
     log_test "🔍 Test 9: Check library path"
-    send_command_with_logging "ls\\ \\\$PREFIX/lib" "Typing 'ls \$PREFIX/lib' + logging" "Library_Path"
-    sleep 2
+    send_command_with_logging "ls \$PREFIX/lib | head -5" "Typing 'ls \$PREFIX/lib >> log'" "Library_Path"
     check_log_results "Library_Path"
     
     # Test 10: APT package manager
-    log_test "🔍 Test 10: APT package manager"  
-    send_command_with_logging "apt\\ --version" "Typing 'apt --version' + logging" "APT_Version"
-    sleep 2
+    log_test "🔍 Test 10: APT package manager"
+    send_command_with_logging "apt --version" "Typing 'apt --version >> log'" "APT_Version"
     check_log_results "APT_Version"
     
     # Show complete log file
     log_test "📄 Complete test log file"
     echo "   Full log contents:"
-    adb shell "run-as $APP_ID cat \$HOME/$LOG_FILE" 2>/dev/null || log_warning "   ⚠️  Could not retrieve complete log"
+    adb shell "run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE" 2>/dev/null || log_warning "   ⚠️  Could not retrieve complete log"
+    echo ""
+    
+    # Automatically copy log file to host
+    log_test "💾 Auto-copying log file to host"
+    local host_log_file="$OUTPUT_DIR/sop-test-$(date +%Y%m%d-%H%M%S).log"
+    local latest_link="$OUTPUT_DIR/sop-test-latest.log"
+    echo -n "   Copying to host as $(basename $host_log_file): "
+    if adb shell "run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE" > "$host_log_file" 2>/dev/null; then
+        log_success "✅ Copied successfully"
+        echo "   📁 Host log location: $host_log_file"
+        
+        # Also create a latest symlink
+        if ln -sf "$(basename $host_log_file)" "$latest_link" 2>/dev/null; then
+            echo "   🔗 Symlink created: sop-test-latest.log -> $(basename $host_log_file)"
+        fi
+        
+        # Show file info
+        if [ -f "$host_log_file" ]; then
+            local file_size=$(wc -l < "$host_log_file" 2>/dev/null || echo "?")
+            echo "   📊 Log file: $file_size lines, $(ls -lh "$host_log_file" | awk '{print $5}') bytes"
+        fi
+    else
+        log_error "❌ Failed to copy log file"
+    fi
     echo ""
     
     # Clear screen for visibility
-    log_test "🔍 Test 11: Clear screen for visibility"
-    send_input "clear" "Typing 'clear' + Enter"
+    log_test "🔍 Final: Clear screen for visibility"
+    adb shell "input text 'clear'" && adb shell "input keyevent 66"
     sleep 1
     echo ""
 }
@@ -239,29 +231,32 @@ run_tests() {
 # Show test summary
 show_summary() {
     log_info "═══════════════════════════════════════════════════════════════"
-    log_success "🏁 User simulation with logging completed!"
+    log_success "🏁 Pure input method testing completed!"
     echo ""
-    log_info "📋 Commands tested via UI input with stdout/stderr logging:"
+    log_info "📋 Commands tested via pure input with direct redirection:"
     echo "   ✓ pwd - Working directory check"
     echo "   ✓ source .profile - Environment setup"
     echo "   ✓ node --version - Node.js runtime"
     echo "   ✓ npm --version - Package manager"
-    echo "   ✓ ls /usr/bin | head -10 - Available commands"
+    echo "   ✓ ls \$PREFIX/bin - Available commands"
     echo "   ✓ echo \$PATH - Environment variables"
-    echo "   ✓ command -v codex - AI tools availability"
-    echo "   ✓ file /usr/bin/node - Symbolic link verification"
-    echo "   ✓ ldd /usr/bin/node | head -3 - Library dependencies"
+    echo "   ✓ which codex - AI tools availability"
+    echo "   ✓ ls -la \$PREFIX/bin/node - Symbolic link verification"
+    echo "   ✓ ls \$PREFIX/lib - Library path check"
     echo "   ✓ apt --version - Package management"
     echo ""
-    log_info "📄 Test results captured in: $LOG_FILE_FULL"
-    log_info "📱 Check the Termux app screen to see command execution"
-    log_info "🔍 Use 'adb shell run-as $APP_ID cat $LOG_FILE_FULL' to view log"
+    log_info "📄 Test results captured in: /data/data/$APP_ID/files/home/$LOG_FILE"
+    log_info "📱 All commands typed directly into terminal UI with >> redirection"
+    log_info "💾 Log file automatically copied to host as sop-test-YYYYMMDD-HHMMSS.log"
+    log_info "🔗 Latest log available as: sop-test-latest.log"
+    log_info "🔍 Manual access: 'adb shell run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE'"
     echo ""
-    log_info "💡 Log file features:"
-    echo "   • Each test has a clear separator (=== Test_Name ===)"
-    echo "   • Both stdout and stderr are captured"
-    echo "   • Results retrieved via 'adb cat' for verification"
-    echo "   • Persistent log survives app restarts"
+    log_info "💡 Pure input method advantages:"
+    echo "   • Commands appear exactly as user would type them"
+    echo "   • Shell handles redirection naturally"
+    echo "   • No complex command escaping needed"
+    echo "   • True end-to-end UI testing"
+    echo "   • Real-time visual feedback on device screen"
 }
 
 # Show usage information
@@ -269,26 +264,32 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  -h, --help     Show this help message"
-    echo "  --app-id ID    Set app ID (default: com.termux)"
+    echo "  -h, --help       Show this help message"
+    echo "  --app-id ID      Set app ID (default: com.termux)"
+    echo "  --output-dir DIR Set output directory for log files (default: current dir)"
     echo ""
     echo "Environment variables:"
     echo "  APP_ID         Application package ID (default: com.termux)"
     echo "  MAIN_ACTIVITY  Main activity class (default: com.termux.app.TermuxActivity)"
+    echo "  OUTPUT_DIR     Directory for saving log files (default: current directory)"
     echo ""
     echo "Features:"
-    echo "  • Simulates user typing via 'adb shell input text'"
-    echo "  • Redirects stdout/stderr to log file in app home directory"
-    echo "  • Uses 'adb cat' to retrieve and display command results"
-    echo "  • Provides immediate verification of command execution"
-    echo "  • Creates persistent log file for later analysis"
+    echo "  • Pure adb shell input method with direct redirection"
+    echo "  • Uses adb shell \"input text 'command >> log'\" format"
+    echo "  • All commands typed directly into terminal UI"
+    echo "  • Real-time visual feedback and natural shell behavior"
+    echo "  • Creates persistent log file for result verification"
+    echo "  • Automatically copies log file to host with timestamp"
+    echo "  • Creates sop-test-latest.log symlink for easy access"
     echo ""
     echo "Examples:"
     echo "  $0                           # Run with default settings"
     echo "  $0 --app-id com.my.termux    # Use custom app ID"
+    echo "  $0 --output-dir ./logs       # Save logs to ./logs directory"
     echo "  APP_ID=com.my.app $0         # Set via environment variable"
+    echo "  OUTPUT_DIR=/tmp $0           # Save logs to /tmp directory"
     echo ""
-    echo "Log file location: /data/data/\$APP_ID/files/home/sop-test.log"
+    echo "Log file location: /data/data/\$APP_ID/files/home/$LOG_FILE"
 }
 
 # Parse command line arguments
@@ -300,6 +301,15 @@ while [[ $# -gt 0 ]]; do
             ;;
         --app-id)
             APP_ID="$2"
+            shift 2
+            ;;
+        --output-dir)
+            OUTPUT_DIR="$2"
+            # Create output directory if it doesn't exist
+            mkdir -p "$OUTPUT_DIR" 2>/dev/null || {
+                log_error "❌ Could not create output directory: $OUTPUT_DIR"
+                exit 1
+            }
             shift 2
             ;;
         *)
