@@ -10,10 +10,12 @@ import android.os.Environment;
 import android.system.Os;
 import android.view.WindowManager;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import com.termux.R;
 import com.termux.shared.file.FileUtils;
@@ -511,6 +513,41 @@ final class TermuxInstaller {
      * Extract a single asset file to target path
      */
     private static void extractAssetFile(AssetManager assets, String assetPath, String targetPath) throws Exception {
+        // Check if this is a symlink indicator file
+        if (assetPath.endsWith(".symlink")) {
+            // Remove .symlink extension from target path
+            String actualTargetPath = targetPath.substring(0, targetPath.length() - 8);
+            
+            // Read symlink target from the indicator file
+            try (InputStream inputStream = assets.open(assetPath);
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                
+                String line = reader.readLine();
+                if (line != null && line.startsWith("SYMLINK:")) {
+                    String symlinkTarget = line.substring(8);
+                    
+                    // Create the symlink
+                    File targetFile = new File(actualTargetPath);
+                    
+                    // Remove existing file/link if present
+                    if (targetFile.exists()) {
+                        targetFile.delete();
+                    }
+                    
+                    // Create parent directory if needed
+                    File parentDir = targetFile.getParentFile();
+                    if (parentDir != null && !parentDir.exists()) {
+                        parentDir.mkdirs();
+                    }
+                    
+                    // Create symbolic link
+                    Os.symlink(symlinkTarget, actualTargetPath);
+                    Logger.logInfo(LOG_TAG, "Created symlink: " + actualTargetPath + " -> " + symlinkTarget);
+                    return;
+                }
+            }
+        }
+        
         File targetFile = new File(targetPath);
         
         // Skip if file already exists and is not empty

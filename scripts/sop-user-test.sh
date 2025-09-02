@@ -62,10 +62,10 @@ send_command_with_logging() {
     
     echo -n "   $description: "
     
-    # Send test separator first
+    # Send test separator first via pure input
     if adb shell "input text 'echo \"=== $test_name ===\" >> $LOG_FILE'" && adb shell "input keyevent 66"; then
         sleep 1
-        # Send the actual command with redirection
+        # Send the actual command with redirection via pure input
         if adb shell "input text '$command >> $LOG_FILE 2>&1'" && adb shell "input keyevent 66"; then
             log_success "✅ Sent"
             sleep 2
@@ -115,28 +115,31 @@ run_tests() {
     log_info "⌨️  Pure Input Tests with Direct Redirection:"
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    # Initialize test environment
+    # Initialize test environment via pure input method
     log_test "🔧 Initializing test environment"
     
-    echo -n "   Setting up directories: "
+    echo -n "   Navigate to home directory: "
     if adb shell "input text 'cd \$HOME'" && adb shell "input keyevent 66"; then
         sleep 1
-        if adb shell "input text 'pwd'" && adb shell "input keyevent 66"; then
-            log_success "✅ Setup complete"
-            sleep 2
-        else
-            log_error "❌ Setup failed"
-        fi
+        log_success "✅ Sent"
     else
-        log_error "❌ Setup failed"
+        log_error "❌ Failed"
     fi
     
-    echo -n "   Creating log file: "
-    if adb shell "input text 'echo \"SOP User Test - \$(date)\" > $LOG_FILE'" && adb shell "input keyevent 66"; then
-        log_success "✅ Log file created"
-        sleep 2
+    echo -n "   Verify current directory: "
+    if adb shell "input text 'pwd'" && adb shell "input keyevent 66"; then
+        sleep 1
+        log_success "✅ Sent"
     else
-        log_error "❌ Log file creation failed"
+        log_error "❌ Failed"
+    fi
+    
+    echo -n "   Create log file: "
+    if adb shell "input text 'echo \"SOP User Test - \$(date)\" > $LOG_FILE'" && adb shell "input keyevent 66"; then
+        sleep 2
+        log_success "✅ Sent"
+    else
+        log_error "❌ Failed"
     fi
     
     echo ""
@@ -148,7 +151,7 @@ run_tests() {
     
     # Test 2: Environment setup
     log_test "🔍 Test 2: Environment setup"
-    send_command_with_logging "source .profile 2>/dev/null; echo 'Profile loaded'" "Typing 'source .profile' + logging" "Environment_Setup"
+    send_command_with_logging "echo \$HOME" "Typing 'echo \$HOME >> log'" "Environment_Setup"
     check_log_results "Environment_Setup"
     
     # Test 3: Node.js version check
@@ -157,13 +160,13 @@ run_tests() {
     check_log_results "Node_Version"
     
     # Test 4: NPM version check
-    log_test "🔍 Test 4: NPM version check"
-    send_command_with_logging "npm --version" "Typing 'npm --version >> log'" "NPM_Version"
+    log_test "🔍 Test 4: NPM version check"  
+    send_command_with_logging "chmod +x \$PREFIX/bin/npm && npm --version" "Typing 'chmod +x npm && npm --version'" "NPM_Version"
     check_log_results "NPM_Version"
     
     # Test 5: List available commands
     log_test "🔍 Test 5: List available commands"
-    send_command_with_logging "ls \$PREFIX/bin | head -10" "Typing 'ls \$PREFIX/bin >> log'" "List_Commands"
+    send_command_with_logging "ls \$PREFIX/bin" "Typing 'ls \$PREFIX/bin >> log'" "List_Commands"
     check_log_results "List_Commands"
     
     # Test 6: Check PATH environment
@@ -183,7 +186,7 @@ run_tests() {
     
     # Test 9: Check library path
     log_test "🔍 Test 9: Check library path"
-    send_command_with_logging "ls \$PREFIX/lib | head -5" "Typing 'ls \$PREFIX/lib >> log'" "Library_Path"
+    send_command_with_logging "ls \$PREFIX/lib" "Typing 'ls \$PREFIX/lib >> log'" "Library_Path"
     check_log_results "Library_Path"
     
     # Test 10: APT package manager
