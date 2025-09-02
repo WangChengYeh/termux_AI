@@ -17,7 +17,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-add-package
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor check-jnilibs check-packages sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-add-package
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -34,6 +34,8 @@ help:
 	@echo "  devices         - List adb devices"
 	@echo "  abi             - Show device ABI"
 	@echo "  verify-abi      - Ensure connected device is arm64-v8a"
+	@echo "  check-jnilibs   - Verify all jniLibs files end with .so"
+	@echo "  check-packages  - Verify all packages are valid .deb files"
 	@echo ""
 	@echo "SOP Package Integration:"
 	@echo "  sop-help        - Show SOP usage and examples"
@@ -49,7 +51,7 @@ help:
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
 
-build:
+build: check-jnilibs
 	@if [ "$(strip $(BUILD_TYPE))" = "debug" ]; then \
 		$(GRADLEW) assembleDebug; \
 	else \
@@ -101,6 +103,76 @@ doctor:
 	@which adb >/dev/null 2>&1 || { echo "Please install Android Platform Tools (adb)"; exit 1; }
 	@test -x "$(GRADLEW)" || { echo "Gradle wrapper not found/executable: $(GRADLEW)"; exit 1; }
 	@echo "Environment looks OK."
+
+check-jnilibs:
+	@echo "🔍 Checking jniLibs files for proper .so extension..."
+	@JNILIBS_DIR="app/src/main/jniLibs/arm64-v8a"; \
+	if [ ! -d "$$JNILIBS_DIR" ]; then \
+		echo "✅ No jniLibs directory found - skipping check"; \
+		exit 0; \
+	fi; \
+	INVALID_FILES=$$(find "$$JNILIBS_DIR" -type f ! -name "*.so" 2>/dev/null); \
+	if [ -n "$$INVALID_FILES" ]; then \
+		echo "❌ Found files without .so extension:"; \
+		echo "$$INVALID_FILES" | while read -r file; do \
+			echo "  - $$file"; \
+		done; \
+		echo ""; \
+		echo "💡 Fix suggestions:"; \
+		echo "$$INVALID_FILES" | while read -r file; do \
+			basename_file=$$(basename "$$file"); \
+			if [[ "$$basename_file" == *.so.* ]]; then \
+				new_name=$$(echo "$$basename_file" | sed 's/\.so\.//' | sed 's/\..*/.so/'); \
+				echo "  mv $$file $$(dirname "$$file")/$$new_name"; \
+			else \
+				echo "  mv $$file $$file.so"; \
+			fi; \
+		done; \
+		echo ""; \
+		echo "All files in jniLibs must end with .so extension for Android compatibility"; \
+		exit 1; \
+	else \
+		echo "✅ All jniLibs files have proper .so extension"; \
+	fi
+
+check-packages:
+	@echo "🔍 Checking packages directory for valid .deb files..."
+	@PACKAGES_DIR="packages"; \
+	if [ ! -d "$$PACKAGES_DIR" ]; then \
+		echo "✅ No packages directory found - skipping check"; \
+		exit 0; \
+	fi; \
+	DEB_FILES=$$(find "$$PACKAGES_DIR" -name "*.deb" -type f 2>/dev/null); \
+	if [ -z "$$DEB_FILES" ]; then \
+		echo "✅ No .deb files found in packages directory"; \
+		exit 0; \
+	fi; \
+	INVALID_DEBS=""; \
+	echo "$$DEB_FILES" | while read -r deb_file; do \
+		if ! dpkg-deb --info "$$deb_file" >/dev/null 2>&1; then \
+			echo "❌ Invalid .deb file: $$deb_file"; \
+			INVALID_DEBS="$$INVALID_DEBS $$deb_file"; \
+		else \
+			package_name=$$(dpkg-deb --field "$$deb_file" Package 2>/dev/null); \
+			version=$$(dpkg-deb --field "$$deb_file" Version 2>/dev/null); \
+			arch=$$(dpkg-deb --field "$$deb_file" Architecture 2>/dev/null); \
+			if [ "$$arch" != "aarch64" ] && [ "$$arch" != "arm64" ] && [ "$$arch" != "all" ]; then \
+				echo "⚠️  Wrong architecture in $$deb_file: $$arch (expected aarch64)"; \
+			else \
+				echo "✅ Valid .deb: $$package_name $$version ($$arch)"; \
+			fi; \
+		fi; \
+	done; \
+	if [ -n "$$INVALID_DEBS" ]; then \
+		echo ""; \
+		echo "💡 Found invalid .deb files. Consider removing them:"; \
+		echo "$$INVALID_DEBS" | tr ' ' '\n' | while read -r invalid_deb; do \
+			if [ -n "$$invalid_deb" ]; then \
+				echo "  rm $$invalid_deb"; \
+			fi; \
+		done; \
+		exit 1; \
+	fi
 
 ##
 ## SOP Package Integration Targets
@@ -238,6 +310,8 @@ sop-copy:
 		      "$(ASSETS_DIR)/usr/lib/"; \
 	fi
 	@echo "Files copied to jniLibs and assets based on type"
+	@echo "🔍 Verifying jniLibs naming compliance..."
+	@$(MAKE) check-jnilibs
 
 sop-update:
 	@if [ -z "$(PACKAGE_NAME)" ]; then \
@@ -281,6 +355,6 @@ sop-update:
 
 sop-build:
 	@echo "🔨 SOP Step 7: Build and test integration"
-	@$(MAKE) clean build install
+	@$(MAKE) check-packages clean build install
 	@echo "✅ Build completed. Test functionality with: make run"
 
