@@ -146,7 +146,7 @@ final class TermuxInstaller {
         FileUtils.createDirectoryFile(binDir);
         FileUtils.createDirectoryFile(libDir);
         
-        // Define executables that go to /usr/bin
+        // Define executables that go to /usr/bin - multiple commands can point to same source
         String[][] executables = {
             {"libcodex.so", "codex"},
             {"libcodex-exec.so", "codex-exec"},
@@ -165,8 +165,9 @@ final class TermuxInstaller {
             {"libupdate-alternatives.so", "update-alternatives"},
             {"libnode.so", "node"},
             {"libenv.so", "env"},
-            {"libprintenv.so", "printenv"},
-            {"libbash.so", "bash"}
+            {"libenv.so", "printenv"},
+            {"libbash.so", "bash"},
+            {"libvim.so", "vim"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -197,16 +198,17 @@ final class TermuxInstaller {
             "libandroid-support.so",
             "libreadline83.so",
             "libhistory83.so",
-            "libncursesw6.so",
             "libncurses6.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
         String[][] versionSymlinks = {
-            // zlib versions
+            // zlib versions - unified to libz1.so (removed libz131.so, libzlib.so)
             {"libz1.so", "libz.so"},
             {"libz1.so", "libz.so.1"},
             {"libz1.so", "libz.so.1.3.1"},
+            {"libz1.so", "libz131.so"},
+            {"libz1.so", "libzlib.so"},
             // bz2 versions  
             {"libbz210.so", "libbz2.so"},
             {"libbz210.so", "libbz2.so.1.0"},
@@ -215,10 +217,11 @@ final class TermuxInstaller {
             // openssl versions
             {"libcrypto3.so", "libcrypto.so.3"},
             {"libssl3.so", "libssl.so.3"},
-            // lzma versions
+            // lzma versions - unified to liblzma5.so (removed liblzma581.so)
             {"liblzma5.so", "liblzma.so"},
             {"liblzma5.so", "liblzma.so.5"},
             {"liblzma5.so", "liblzma.so.5.8.1"},
+            {"liblzma5.so", "liblzma581.so"},
             // ICU versions  
             {"libicudata771.so", "libicudata.so.77.1"},
             {"libicui18n771.so", "libicui18n.so.77.1"},
@@ -242,11 +245,12 @@ final class TermuxInstaller {
             // history versions
             {"libhistory83.so", "libhistory.so"},
             {"libhistory83.so", "libhistory.so.8"},
-            // ncurses versions
-            {"libncursesw6.so", "libncursesw.so"},
-            {"libncursesw6.so", "libncursesw.so.6"},
+            // ncurses versions - unified to libncurses6.so (removed libncursesw6.so)
             {"libncurses6.so", "libncurses.so"},
-            {"libncurses6.so", "libncurses.so.6"}
+            {"libncurses6.so", "libncurses.so.6"},
+            {"libncurses6.so", "libncursesw.so"},
+            {"libncurses6.so", "libncursesw.so.6"},
+            {"libncurses6.so", "libncursesw6.so"}
         };
         
         // Create symlinks for executables in /usr/bin

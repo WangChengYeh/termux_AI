@@ -17,7 +17,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor check-jnilibs check-packages sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-add-package
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-add-package
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -36,6 +36,7 @@ help:
 	@echo "  verify-abi      - Ensure connected device is arm64-v8a"
 	@echo "  check-jnilibs   - Verify all jniLibs files end with .so"
 	@echo "  check-packages  - Verify all packages are valid .deb files"
+	@echo "  check-duplicates- Find and report duplicate files in jniLibs"
 	@echo ""
 	@echo "SOP Package Integration:"
 	@echo "  sop-help        - Show SOP usage and examples"
@@ -172,6 +173,82 @@ check-packages:
 			fi; \
 		done; \
 		exit 1; \
+	fi
+
+check-duplicates:
+	@echo "🔍 Checking for duplicate files in jniLibs..."
+	@JNILIBS_DIR="app/src/main/jniLibs/arm64-v8a"; \
+	if [ ! -d "$$JNILIBS_DIR" ]; then \
+		echo "✅ No jniLibs directory found - skipping check"; \
+		exit 0; \
+	fi; \
+	echo "📊 Analyzing files by size and content..."; \
+	echo ""; \
+	DUPLICATES_FOUND=0; \
+	TEMP_FILE=$$(mktemp); \
+	find "$$JNILIBS_DIR" -name "*.so" -type f -exec ls -l {} \; | \
+		awk '{print $$5, $$9}' | sort -n > "$$TEMP_FILE"; \
+	PREV_SIZE=""; \
+	SAME_SIZE_FILES=""; \
+	while read -r SIZE FILE; do \
+		if [ "$$SIZE" = "$$PREV_SIZE" ]; then \
+			SAME_SIZE_FILES="$$SAME_SIZE_FILES $$FILE"; \
+		else \
+			if [ -n "$$SAME_SIZE_FILES" ] && [ $$(echo "$$SAME_SIZE_FILES" | wc -w) -gt 1 ]; then \
+				FIRST_FILE=$$(echo "$$SAME_SIZE_FILES" | awk '{print $$1}'); \
+				DUPLICATES=""; \
+				for FILE in $$SAME_SIZE_FILES; do \
+					if [ "$$FILE" != "$$FIRST_FILE" ]; then \
+						if cmp -s "$$FIRST_FILE" "$$FILE"; then \
+							DUPLICATES="$$DUPLICATES $$FILE"; \
+						fi; \
+					fi; \
+				done; \
+				if [ -n "$$DUPLICATES" ]; then \
+					echo "🔁 Duplicate set found (size: $$PREV_SIZE bytes):"; \
+					echo "  📌 Source: $$(basename $$FIRST_FILE)"; \
+					for DUP in $$DUPLICATES; do \
+						echo "  ↳ Duplicate: $$(basename $$DUP)"; \
+					done; \
+					echo ""; \
+					DUPLICATES_FOUND=1; \
+				fi; \
+			fi; \
+			SAME_SIZE_FILES="$$FILE"; \
+			PREV_SIZE="$$SIZE"; \
+		fi; \
+	done < "$$TEMP_FILE"; \
+	if [ -n "$$SAME_SIZE_FILES" ] && [ $$(echo "$$SAME_SIZE_FILES" | wc -w) -gt 1 ]; then \
+		FIRST_FILE=$$(echo "$$SAME_SIZE_FILES" | awk '{print $$1}'); \
+		DUPLICATES=""; \
+		for FILE in $$SAME_SIZE_FILES; do \
+			if [ "$$FILE" != "$$FIRST_FILE" ]; then \
+				if cmp -s "$$FIRST_FILE" "$$FILE"; then \
+					DUPLICATES="$$DUPLICATES $$FILE"; \
+				fi; \
+			fi; \
+		done; \
+		if [ -n "$$DUPLICATES" ]; then \
+			echo "🔁 Duplicate set found (size: $$PREV_SIZE bytes):"; \
+			echo "  📌 Source: $$(basename $$FIRST_FILE)"; \
+			for DUP in $$DUPLICATES; do \
+				echo "  ↳ Duplicate: $$(basename $$DUP)"; \
+			done; \
+			echo ""; \
+			DUPLICATES_FOUND=1; \
+		fi; \
+	fi; \
+	rm -f "$$TEMP_FILE"; \
+	if [ "$$DUPLICATES_FOUND" -eq 1 ]; then \
+		echo "💡 Recommendation: Use symbolic links in TermuxInstaller.java to map duplicates to single source"; \
+		echo "   This saves APK size by avoiding redundant binary storage"; \
+		echo ""; \
+		echo "Example TermuxInstaller.java mapping:"; \
+		echo '  {"libz1.so", "z"},'; \
+		echo '  {"libz1.so", "zlib"},  // Symlink to same source'; \
+		echo '  {"libz1.so", "z131"},  // Symlink to same source'; \
+	else \
+		echo "✅ No duplicate files found in jniLibs"; \
 	fi
 
 ##
