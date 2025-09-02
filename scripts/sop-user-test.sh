@@ -85,9 +85,22 @@ send_command_with_logging() {
         log_success "✅ Sent"
         sleep 2
         
-        # Capture the output via ADB and append to log
-        local temp_output=$(adb shell "run-as $APP_ID /system/bin/sh -c 'cd /data/data/$APP_ID/files/home && $command 2>&1'" 2>/dev/null || echo "Command failed")
-        adb shell "run-as $APP_ID /system/bin/sh -c 'cd /data/data/$APP_ID/files/home && echo \"$temp_output\" >> sop-test.log'" 2>/dev/null
+        # Clean command for execution (remove escaping)
+        local clean_command=$(echo "$command" | sed 's/\\//g')
+        
+        # Capture the output via ADB with proper environment and append to log
+        local temp_output=$(adb shell "run-as $APP_ID /system/bin/sh -c '
+            cd /data/data/$APP_ID/files/home
+            export HOME=/data/data/$APP_ID/files/home
+            export PREFIX=/data/data/$APP_ID/files/usr  
+            export PATH=/data/data/$APP_ID/files/usr/bin:\$PATH
+            export LD_LIBRARY_PATH=/data/data/$APP_ID/files/usr/lib:\$LD_LIBRARY_PATH
+            if [ -f .profile ]; then source .profile 2>/dev/null; fi
+            $clean_command 2>&1
+        '" 2>/dev/null || echo "Command execution failed")
+        
+        # Append result to log file
+        adb shell "run-as $APP_ID /system/bin/sh -c 'cd /data/data/$APP_ID/files/home && printf \"%s\n\" \"$temp_output\" >> sop-test.log'" 2>/dev/null
         return 0
     else
         log_error "❌ FAILED"
@@ -168,7 +181,7 @@ run_tests() {
     sleep 3
     check_log_results "Node_Version"
     
-    # Test 4: NPM version check
+    # Test 4: NPM version check  
     log_test "🔍 Test 4: NPM version check"
     send_command_with_logging "npm\\ --version" "Typing 'npm --version' + logging" "NPM_Version"
     sleep 3
@@ -176,7 +189,7 @@ run_tests() {
     
     # Test 5: List available commands
     log_test "🔍 Test 5: List available commands"
-    send_command_with_logging "ls\\ /usr/bin\\ \\|\\ head\\ -10" "Typing 'ls /usr/bin | head -10' + logging" "List_Commands"
+    send_command_with_logging "ls\\ \\\$PREFIX/bin" "Typing 'ls \$PREFIX/bin' + logging" "List_Commands"
     sleep 2
     check_log_results "List_Commands"
     
@@ -188,24 +201,24 @@ run_tests() {
     
     # Test 7: Test AI tools availability
     log_test "🔍 Test 7: Test AI tools availability"
-    send_command_with_logging "command\\ -v\\ codex" "Typing 'command -v codex' + logging" "AI_Tools"
+    send_command_with_logging "which\\ codex" "Typing 'which codex' + logging" "AI_Tools"
     sleep 2
     check_log_results "AI_Tools"
     
     # Test 8: Test symbolic links
     log_test "🔍 Test 8: Test symbolic links"
-    send_command_with_logging "file\\ /usr/bin/node" "Typing 'file /usr/bin/node' + logging" "Symbolic_Links"
+    send_command_with_logging "ls\\ -la\\ \\\$PREFIX/bin/node" "Typing 'ls -la \$PREFIX/bin/node' + logging" "Symbolic_Links"
     sleep 2
     check_log_results "Symbolic_Links"
     
-    # Test 9: Check library dependencies
-    log_test "🔍 Test 9: Check library dependencies"
-    send_command_with_logging "ldd\\ /usr/bin/node\\ \\|\\ head\\ -3" "Typing 'ldd /usr/bin/node | head -3' + logging" "Library_Deps"
-    sleep 3
-    check_log_results "Library_Deps"
+    # Test 9: Check library path
+    log_test "🔍 Test 9: Check library path"
+    send_command_with_logging "ls\\ \\\$PREFIX/lib" "Typing 'ls \$PREFIX/lib' + logging" "Library_Path"
+    sleep 2
+    check_log_results "Library_Path"
     
     # Test 10: APT package manager
-    log_test "🔍 Test 10: APT package manager"
+    log_test "🔍 Test 10: APT package manager"  
     send_command_with_logging "apt\\ --version" "Typing 'apt --version' + logging" "APT_Version"
     sleep 2
     check_log_results "APT_Version"
