@@ -203,15 +203,17 @@ run_tests() {
     # Automatically copy log file to host
     log_test "💾 Auto-copying log file to host"
     local host_log_file="$OUTPUT_DIR/sop-test-$(date +%Y%m%d-%H%M%S).log"
-    local latest_link="$OUTPUT_DIR/sop-test-latest.log"
+    local latest_file="$OUTPUT_DIR/sop-test-latest.log"
     echo -n "   Copying to host as $(basename $host_log_file): "
     if adb shell "run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE" > "$host_log_file" 2>/dev/null; then
         log_success "✅ Copied successfully"
         echo "   📁 Host log location: $host_log_file"
         
-        # Also create a latest symlink
-        if ln -sf "$(basename $host_log_file)" "$latest_link" 2>/dev/null; then
-            echo "   🔗 Symlink created: sop-test-latest.log -> $(basename $host_log_file)"
+        # Copy content to sop-test-latest.log (real file, not symlink)
+        if cp "$host_log_file" "$latest_file" 2>/dev/null; then
+            echo "   📄 Real file created: sop-test-latest.log (contains actual test results)"
+        else
+            log_warning "   ⚠️  Could not create sop-test-latest.log"
         fi
         
         # Show file info
@@ -251,7 +253,7 @@ show_summary() {
     log_info "📄 Test results captured in: /data/data/$APP_ID/files/home/$LOG_FILE"
     log_info "📱 All commands typed directly into terminal UI with >> redirection"
     log_info "💾 Log file automatically copied to host as sop-test-YYYYMMDD-HHMMSS.log"
-    log_info "🔗 Latest log available as: sop-test-latest.log"
+    log_info "📄 Latest log available as: sop-test-latest.log (real file with test results)"
     log_info "🔍 Manual access: 'adb shell run-as $APP_ID cat /data/data/$APP_ID/files/home/$LOG_FILE'"
     echo ""
     log_info "💡 Pure input method advantages:"
@@ -283,7 +285,7 @@ show_usage() {
     echo "  • Real-time visual feedback and natural shell behavior"
     echo "  • Creates persistent log file for result verification"
     echo "  • Automatically copies log file to host with timestamp"
-    echo "  • Creates sop-test-latest.log symlink for easy access"
+    echo "  • Creates sop-test-latest.log real file with actual test results"
     echo ""
     echo "Examples:"
     echo "  $0                           # Run with default settings"

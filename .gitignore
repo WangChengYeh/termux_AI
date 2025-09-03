@@ -8,7 +8,9 @@ packages/*-complete/
 build/
 release/
 *.apk
+# SOP test logs - keep latest but ignore timestamped files
 sop-test-2*.log
+# Keep sop-test-latest.log for check-in (real file with test results)
 # *.so
 .externalNativeBuild
 .cxx

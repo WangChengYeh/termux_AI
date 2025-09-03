@@ -61,7 +61,7 @@ help:
 	@echo "  sop-update      - Update TermuxInstaller.java (if needed)"
 	@echo "  sop-build       - Build and test integration"
 	@echo "  sop-test        - Interactive command testing in live app"
-	@echo "  sop-user-test   - Automated UI testing via ADB input (./scripts/sop-user-test.sh)"
+	@echo "  sop-user-test   - Automated UI testing via ADB input, creates sop-test-latest.log"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
