@@ -7,6 +7,12 @@ BUILD_TYPE ?= debug # debug|release
 APP_ID ?= com.termux
 MAIN_ACTIVITY ?= com.termux.app.TermuxActivity
 
+# Release variables
+RELEASE_VERSION ?= $(shell date +v%Y.%m.%d)
+RELEASE_TITLE ?= Termux AI $(RELEASE_VERSION) - Node.js Integration Release
+RELEASE_DRAFT ?= false
+RELEASE_PRERELEASE ?= false
+
 # Derived values - Use correct APK filenames based on build type
 ifeq ($(strip $(BUILD_TYPE)),debug)
 APK_DIR := $(MODULE)/build/outputs/apk/debug
@@ -17,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -39,6 +45,11 @@ help:
 	@echo "  check-packages  - Verify all packages are valid .deb files"
 	@echo "  check-duplicates- Find and report duplicate files in jniLibs"
 	@echo ""
+	@echo "GitHub Release Management:"
+	@echo "  github-release  - Create GitHub release with APK upload"
+	@echo "  github-tag-version - Create and push version tag"
+	@echo "  github-auth-check - Verify GitHub CLI authentication"
+	@echo ""
 	@echo "SOP Package Integration:"
 	@echo "  sop-help        - Show SOP usage and examples"
 	@echo "  sop-add-package - Complete SOP workflow for PACKAGE_NAME"
@@ -54,6 +65,7 @@ help:
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
+	@echo "Release Variables: RELEASE_VERSION, RELEASE_TITLE, RELEASE_DRAFT, RELEASE_PRERELEASE"
 
 build: check-jnilibs
 	@if [ "$(strip $(BUILD_TYPE))" = "debug" ]; then \
@@ -549,4 +561,72 @@ sop-test:
 
 sop-user-test:
 	@APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-user-test.sh
+
+##
+## GitHub Release Management Targets
+##
+
+github-auth-check:
+	@echo "🔐 Checking GitHub CLI authentication..."
+	@if ! command -v gh >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI (gh) is not installed"; \
+		echo "Install with: brew install gh (macOS) or apt install gh (Ubuntu)"; \
+		exit 1; \
+	fi
+	@if ! gh auth status >/dev/null 2>&1; then \
+		echo "❌ GitHub CLI is not authenticated"; \
+		echo "Run: gh auth login"; \
+		exit 1; \
+	fi
+	@echo "✅ GitHub CLI is authenticated"
+	@gh auth status
+
+github-tag-version:
+	@echo "🏷️ Creating version tag: $(RELEASE_VERSION)"
+	@if git tag -l | grep -q "^$(RELEASE_VERSION)$$"; then \
+		echo "⚠️  Tag $(RELEASE_VERSION) already exists"; \
+		echo "Use: make github-tag-version RELEASE_VERSION=v1.x.x"; \
+		exit 1; \
+	fi
+	@git tag $(RELEASE_VERSION)
+	@git push origin $(RELEASE_VERSION)
+	@echo "✅ Tagged and pushed $(RELEASE_VERSION)"
+
+github-release-notes:
+	@echo "📝 Generating release notes for $(RELEASE_VERSION)..."
+	@mkdir -p /tmp
+	@printf '# $(RELEASE_TITLE)\n\nBootstrap-free terminal with native Node.js v24.7.0 and AI integration. No package installation required - ready for development immediately.\n\n## ✨ Release Highlights\n- **Instant Setup**: Download, install, develop - no bootstrap required\n- **Native Performance**: Node.js as ARM64 library with W^X compliance\n- **AI Integration**: Built-in Codex CLI for development assistance\n- **Production Ready**: R8 optimized build with comprehensive testing\n\n## 📱 Quick Install\n1. Download APK below → Install on ARM64 Android 14+ device → Launch → Start coding\n\n## 🔐 Release Info\n- **Size**: %s | **SHA256**: %s | **Target**: ARM64 Android 14+\n\n## 📚 Documentation\n**[📖 Full README](https://github.com/WangChengYeh/termux_AI/blob/master/README.md)** - Architecture, workflow, and technical details\n\n**Quick Commands:**\n```bash\nnode --version    # v24.7.0 JavaScript runtime\ncodex --help      # AI assistance\nnpm init -y       # Package management  \nls /usr/bin       # 80+ available tools\n```\n\n## 🚀 What'\''s Included\n**Development:** Node.js v24.7.0, npm v11.5.1, npx | **AI Tools:** Codex CLI/exec | **System:** APT, DPKG, Core Utils (bash, vim, etc.)\n' "$$(ls -lh $(APK) 2>/dev/null | awk '{print $$5}' || echo 'N/A')" "$$(shasum -a 256 $(APK) 2>/dev/null | cut -d' ' -f1 || echo 'N/A')" > /tmp/release-notes.md
+	@echo "✅ Release notes generated: /tmp/release-notes.md"
+
+github-release: github-auth-check
+	@if [ ! -f "$(APK)" ]; then \
+		echo "❌ Release APK not found: $(APK)"; \
+		echo "Run: BUILD_TYPE=release make build"; \
+		exit 1; \
+	fi
+	@echo "🚀 Creating GitHub release: $(RELEASE_VERSION)"
+	@echo "📦 APK: $(APK)"
+	@echo "📝 Title: $(RELEASE_TITLE)"
+	@# Create version tag if it doesn't exist
+	@if ! git tag -l | grep -q "^$(RELEASE_VERSION)$$"; then \
+		echo "🏷️ Creating tag $(RELEASE_VERSION)..."; \
+		git tag $(RELEASE_VERSION); \
+		git push origin $(RELEASE_VERSION); \
+	fi
+	@# Generate release notes
+	@$(MAKE) github-release-notes
+	@# Create GitHub release
+	@APK_NAME="$$(basename $(APK) .apk)-$(RELEASE_VERSION).apk"; \
+	echo "📤 Uploading APK as: $$APK_NAME"; \
+	gh release create $(RELEASE_VERSION) \
+		"$(APK)#$$APK_NAME" \
+		--title "$(RELEASE_TITLE)" \
+		--notes-file /tmp/release-notes.md \
+		--target master \
+		$(if $(filter true,$(RELEASE_DRAFT)),--draft,) \
+		$(if $(filter true,$(RELEASE_PRERELEASE)),--prerelease,)
+	@echo "✅ GitHub release created successfully!"
+	@echo "🔗 View at: https://github.com/$$(gh repo view --json owner,name -q '.owner.login + "/" + .name')/releases/tag/$(RELEASE_VERSION)"
+	@# Clean up temporary files
+	@rm -f /tmp/release-notes.md
 
