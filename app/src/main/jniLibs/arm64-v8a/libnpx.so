@@ -1,9 +1,9 @@
 #!/data/data/com.termux/files/usr/bin/env node
 
-const cli = require('../lib/cli.js')
+const cli = require('/data/data/com.termux/files/usr/node_modules/lib/cli.js')
 
 // run the resulting command as `npm exec ...args`
-process.argv[1] = require.resolve('./npm-cli.js')
+process.argv[1] = require.resolve('/data/data/com.termux/files/usr/node_modules/bin/npm-cli.js')
 process.argv.splice(2, 0, 'exec')
 
 // TODO: remove the affordances for removed items in npm v9

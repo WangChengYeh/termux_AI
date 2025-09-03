@@ -36,11 +36,11 @@ ls /usr/bin            # 80+ available commands
 - **Termux AI**: Native executable verification and symbolic link creation
 - **Benefits**: Faster startup, better security, W^X compliance
 
-### Native Integration Process
-1. **ARM64 binaries** from packages.termux.dev → extracted as `.so` files
+### Unified Executable Integration Process
+1. **ALL executables** (binaries + scripts) → placed in `jniLibs/arm64-v8a/` as `.so` files
 2. **Android** automatically extracts to `/data/app/.../lib/arm64/` (read-only)
-3. **Symbolic links** in `/usr/bin` point to native library paths  
-4. **Script files** (npm, npx) extracted from assets to `/usr/bin`
+3. **Symbolic links** in `/usr/bin` point to native library paths uniformly
+4. **Scripts** (npm, npx, corepack) handled identically to native binaries
 5. **Dependencies** (node_modules) available in `/usr/lib`
 
 ### Security & Compliance
@@ -53,8 +53,8 @@ ls /usr/bin            # 80+ available commands
 | Component | Version | Type | Description |
 |-----------|---------|------|-------------|
 | **Node.js** | v24.7.0 | Native | JavaScript runtime |
-| **npm** | v11.5.1 | Script | Package manager |
-| **npx** | Latest | Script | Package executor |
+| **npm** | v11.5.1 | Script (.so) | Package manager |
+| **npx** | Latest | Script (.so) | Package executor |
 | **Codex CLI** | Latest | Native | AI assistance |
 | **APT** | v2.8.1 | Native | Package management |
 | **Core Utils** | v9.7-3 | Native | Unix commands (cat, ls, bash, vim, etc.) |
@@ -94,7 +94,7 @@ make github-release  # Automated GitHub release
 
 ### Integration Rules
 - **Native Executables** (ARM64 ELF): `jniLibs/arm64-v8a/libname.so`
-- **Script Files** (npm, npx): `assets/termux/usr/bin/script`
+- **Script Files** (npm, npx): `jniLibs/arm64-v8a/libscript.so`
 - **Shared Libraries**: `jniLibs/arm64-v8a/library.so` (keep original name)
 - **Dependencies**: `assets/termux/usr/lib/` (node_modules, etc.)
 
@@ -111,10 +111,10 @@ make github-release  # Automated GitHub release
 ### Runtime Environment
 ```
 /data/data/com.termux/files/usr/
-├── bin/                               # Mixed: symlinks + scripts
-│   ├── node -> /data/app/.../lib/arm64/libnode.so (native)
-│   ├── npm                            # Script from assets
-│   └── npx                            # Script from assets
+├── bin/                               # All symlinks to /data/app
+│   ├── node -> /data/app/.../lib/arm64/libnode.so
+│   ├── npm -> /data/app/.../lib/arm64/libnpm.so
+│   └── npx -> /data/app/.../lib/arm64/libnpx.so
 └── lib/                              # Libraries + node_modules from assets
 ```
 
@@ -164,7 +164,7 @@ ls /usr/bin         # Should list all available commands
 - **Architecture**: ARM64 (`arm64-v8a`) devices only
 - **Android Version**: Requires API level 34+ (Android 14+)
 - **Package Scope**: Essential packages included; use APT for additional software
-- **npm/npx Issues**: Script execution permissions under investigation
+- **Unified Approach**: All executables (binaries + scripts) as .so files in jniLibs
 
 ## 📈 Project Status
 
