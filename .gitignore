@@ -8,6 +8,7 @@ packages/*-complete/
 build/
 release/
 *.apk
+sop-test-2*.log
 # *.so
 .externalNativeBuild
 .cxx
