@@ -46,6 +46,8 @@ help:
 	@echo "  check-duplicates- Find and report duplicate files in jniLibs"
 	@echo ""
 	@echo "GitHub Release Management:"
+	@echo "  github-release-script     - Enhanced release script with auto-versioning"
+	@echo "  github-release-script-dry-run - Build APK without creating release"
 	@echo "  github-release  - Create GitHub release with APK upload"
 	@echo "  github-tag-version - Create and push version tag"
 	@echo "  github-auth-check - Verify GitHub CLI authentication"
@@ -618,6 +620,15 @@ sop-get-contents:
 	else \
 		echo "✅ Contents-aarch64 already available"; \
 	fi
+
+# Enhanced GitHub release using script
+github-release-script:
+	@echo "🚀 Creating GitHub release using enhanced script..."
+	@./scripts/github-release.sh
+
+github-release-script-dry-run:
+	@echo "🧪 Dry run - building APK without creating release..."
+	@./scripts/github-release.sh --dry-run
 
 ##
 ## GitHub Release Management Targets
