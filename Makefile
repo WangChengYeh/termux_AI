@@ -124,7 +124,9 @@ grant-permissions:
 	@echo "✅ Essential permissions granted to $(APP_ID)"
 
 run:
-	adb shell am start -n "$(APP_ID)/.app.TermuxActivity"
+	@echo "🚀 Launching Termux AI..."
+	@adb shell am start -W -S -n "$(APP_ID)/.app.TermuxActivity" | grep -E "(Status|TotalTime)" || true
+	@echo "✅ App launched"
 
 logs:
 	adb logcat | sed -u -n '/$(APP_ID)/p'
@@ -532,7 +534,7 @@ sop-test:
 	@echo "  3. Allow you to test commands interactively"
 	@echo ""
 	@echo "📱 Launching Termux AI..."
-	@adb shell am start -n "$(APP_ID)/.app.TermuxActivity" >/dev/null 2>&1 || true
+	@adb shell am start -W -S -n "$(APP_ID)/.app.TermuxActivity" >/dev/null 2>&1 || true
 	@sleep 2
 	@echo "🔗 Connecting to app via ADB shell..."
 	@echo ""

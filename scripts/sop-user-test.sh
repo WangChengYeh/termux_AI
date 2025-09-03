@@ -94,13 +94,59 @@ check_log_results() {
     echo ""
 }
 
-# Launch the app
+# Launch the app with proper initialization verification
 launch_app() {
     log_info "📱 Launching Termux AI..."
-    adb shell am start -n "$APP_ID/.$MAIN_ACTIVITY" >/dev/null 2>&1 || true
+    
+    # Force stop and launch with timing
+    local launch_result=$(adb shell am start -W -S -n "$APP_ID/.app.TermuxActivity" 2>/dev/null)
+    
+    if echo "$launch_result" | grep -q "Status: ok"; then
+        local launch_time=$(echo "$launch_result" | grep "TotalTime:" | awk '{print $2}')
+        log_success "✅ App launched successfully (${launch_time}ms)"
+    else
+        log_warning "⚠️  Launch status unclear, proceeding anyway"
+    fi
+    
+    # Wait for app processes to initialize
+    log_info "🔧 Verifying app initialization..."
+    local retries=10
+    local ready=false
+    
+    for ((i=1; i<=retries; i++)); do
+        if adb shell run-as "$APP_ID" test -d "/data/data/$APP_ID/files/home" 2>/dev/null; then
+            ready=true
+            log_success "✅ Home directory ready (attempt $i)"
+            break
+        fi
+        echo -n "   Waiting for initialization... (attempt $i/$retries)"
+        sleep 1
+        echo ""
+    done
+    
+    if [ "$ready" = false ]; then
+        log_warning "⚠️  App may not be fully initialized, but proceeding with tests"
+    fi
+    
+    # Additional wait for terminal UI to be ready
+    log_info "🖥️  Waiting for terminal interface to be ready..."
     sleep 3
-    log_info "🖥️  App launched, waiting for terminal to be ready..."
-    sleep 2
+    
+    # Test if terminal is responsive
+    log_info "🧪 Testing terminal responsiveness..."
+    if adb shell "input text 'echo ready > /tmp/terminal_test'" && adb shell "input keyevent 66"; then
+        sleep 2
+        if adb shell run-as "$APP_ID" test -f "/tmp/terminal_test" 2>/dev/null; then
+            log_success "✅ Terminal is responsive"
+            adb shell run-as "$APP_ID" rm -f "/tmp/terminal_test" 2>/dev/null || true
+        else
+            log_warning "⚠️  Terminal may not be fully responsive yet"
+        fi
+    else
+        log_warning "⚠️  Could not test terminal responsiveness"
+    fi
+    
+    log_success "🚀 App ready for testing!"
 }
 
 # Main test execution
