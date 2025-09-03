@@ -57,6 +57,7 @@ ls /usr/bin            # 80+ available commands
 | **npx** | Latest | Script (.so) | Package executor |
 | **Codex CLI** | Latest | Native | AI assistance |
 | **APT** | v2.8.1 | Native | Package management |
+| **Git** | v2.23.0 | Native | Version control system |
 | **Core Utils** | v9.7-3 | Native | Unix commands (cat, ls, bash, vim, etc.) |
 | **DPKG Suite** | v1.22.6 | Native | Debian package tools |
 
@@ -77,6 +78,63 @@ make sop-analyze PACKAGE_NAME=nodejs  # Analyze structure
 make sop-copy PACKAGE_NAME=nodejs     # Copy to Android structure
 make sop-update PACKAGE_NAME=nodejs   # Update Java code
 make sop-build                        # Build and test
+```
+
+#### Resolving Missing Libraries
+When encountering missing library errors (e.g., "library libcharset.so not found"):
+
+1. **Find the package containing the library**:
+   ```bash
+   grep "libcharset.so" packages/Contents-aarch64
+   # Output: usr/lib/libcharset.so libiconv
+   ```
+
+2. **Download and extract the required package**:
+   ```bash
+   make sop-download PACKAGE_NAME=libiconv VERSION=1.18-1
+   make sop-extract PACKAGE_NAME=libiconv
+   ```
+
+3. **Copy the library to jniLibs**:
+   ```bash
+   cp packages/libiconv-extract/.../lib/libcharset.so \
+      app/src/main/jniLibs/arm64-v8a/
+   ```
+
+4. **Update TermuxInstaller.java** to include the library in baseLibraries array
+5. **Rebuild and test**
+
+#### Complete Example: Adding Git
+```bash
+# 1. Download git package
+wget -O packages/git_2.23.0-1_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main-21/pool/main/g/git/git_2.23.0-1_aarch64.deb"
+
+# 2. Extract and copy main executable
+dpkg-deb -x packages/git_2.23.0-1_aarch64.deb packages/git-extract
+cp packages/git-extract/.../libexec/git-core/git \
+   app/src/main/jniLibs/arm64-v8a/libgit.so
+
+# 3. Check for missing libraries at runtime
+# Error: "library libcharset.so not found"
+
+# 4. Find which package contains libcharset.so
+grep "lib/libcharset.so" packages/Contents-aarch64
+# Result: data/.../usr/lib/libcharset.so libiconv
+
+# 5. Download and add missing dependency
+wget -O packages/libiconv_1.18-1_aarch64.deb \
+  "https://packages.termux.dev/apt/termux-main-21/pool/main/libi/libiconv/libiconv_1.18-1_aarch64.deb"
+dpkg-deb -x packages/libiconv_1.18-1_aarch64.deb packages/libiconv-extract
+cp packages/libiconv-extract/.../lib/libcharset.so app/src/main/jniLibs/arm64-v8a/
+cp packages/libiconv-extract/.../lib/libiconv.so app/src/main/jniLibs/arm64-v8a/
+
+# 6. Update TermuxInstaller.java
+# Add: {"libgit.so", "git"} to executables array
+# Add: "libcharset.so", "libiconv.so" to baseLibraries array
+
+# 7. Build and test
+make build && make install && make run
 ```
 
 ### Build & Deploy

@@ -1,4 +1,4 @@
-SOP User Test - Wed Sep  3 22:22:58 CST 2025
+SOP User Test - Wed Sep  3 22:41:11 CST 2025
 === Basic_Command ===
 /data/data/com.termux/files/home
 === Environment_Setup ===
@@ -135,7 +135,7 @@ yes
 === AI_Tools ===
 /data/data/com.termux/files/usr/bin/codex
 === Symbolic_Links ===
-lrwxrwxrwx. 1 u0_a383 u0_a383 93 Sep  3 22:22 /data/data/com.termux/files/usr/bin/node -> /data/app/~~_gE_d8vjSa9BtzRqPzU5YQ==/com.termux-R9v8CSpBMtaAxToScBYQ8Q==/lib/arm64/libnode.so
+lrwxrwxrwx. 1 u0_a384 u0_a384 93 Sep  3 22:41 /data/data/com.termux/files/usr/bin/node -> /data/app/~~X-a4cMkB0eikNwc-M3-aKA==/com.termux-Qrr_A8AfMsORzdi718JVUw==/lib/arm64/libnode.so
 === Library_Path ===
 libandroid-glob.so
 libandroid-selinux.so

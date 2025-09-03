@@ -323,6 +323,11 @@ sop-help:
 	@echo "  make sop-update PACKAGE_NAME=nodejs      # Updates TermuxInstaller.java if needed"
 	@echo "  make sop-build                           # Build and test integration"
 	@echo ""
+	@echo "Dependency Resolution:"
+	@echo "  make sop-get-contents                    # Download Contents-aarch64 if missing"
+	@echo "  make sop-find-lib LIBRARY=libcharset.so  # Find package containing library"
+	@echo "  make sop-add-deps PACKAGE_NAME=git       # Auto-resolve and add dependencies"
+	@echo ""
 	@echo "Package Analysis:"
 	@echo "  make extract-package PACKAGE_NAME=libgmp # Extract complete package (data + control)"
 	@echo ""
@@ -563,6 +568,56 @@ sop-test:
 
 sop-user-test:
 	@APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-user-test.sh
+
+# Find which package contains a library
+sop-find-lib:
+	@if [ -z "$(LIBRARY)" ]; then \
+		echo "❌ Error: LIBRARY is required"; \
+		echo "Usage: make sop-find-lib LIBRARY=libcharset.so"; \
+		exit 1; \
+	fi
+	@echo "🔍 Finding package containing $(LIBRARY)..."
+	@if [ ! -f "packages/Contents-aarch64" ]; then \
+		echo "❌ packages/Contents-aarch64 not found"; \
+		echo "Download from: https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64"; \
+		exit 1; \
+	fi
+	@echo "📋 Results from Contents-aarch64:"
+	@grep "$(LIBRARY)" packages/Contents-aarch64 | head -5 || echo "⚠️  Library $(LIBRARY) not found in Contents-aarch64"
+
+# Auto-resolve and add dependencies for a package
+sop-add-deps:
+	@if [ -z "$(PACKAGE_NAME)" ]; then \
+		echo "❌ Error: PACKAGE_NAME is required"; \
+		echo "Usage: make sop-add-deps PACKAGE_NAME=git"; \
+		exit 1; \
+	fi
+	@echo "📦 Resolving dependencies for $(PACKAGE_NAME)..."
+	@EXTRACT_DIR="packages/$(PACKAGE_NAME)-extract"; \
+	if [ ! -d "$$EXTRACT_DIR" ]; then \
+		echo "❌ Package $(PACKAGE_NAME) not extracted yet"; \
+		echo "Run: make sop-extract PACKAGE_NAME=$(PACKAGE_NAME)"; \
+		exit 1; \
+	fi; \
+	echo "🔍 Checking runtime dependencies..."; \
+	find "$$EXTRACT_DIR" -name "*.so*" -o -perm +111 -type f | while read -r file; do \
+		if [ -x "$$file" ] && file "$$file" | grep -q "ELF.*ARM aarch64"; then \
+			echo "📄 Analyzing: $$(basename $$file)"; \
+			readelf -d "$$file" 2>/dev/null | grep "NEEDED" | sed 's/.*\[\(.*\)\]/  - \1/' || echo "  - No dynamic dependencies"; \
+		fi; \
+	done
+
+# Download Contents-aarch64 if missing
+sop-get-contents:
+	@if [ ! -f "packages/Contents-aarch64" ]; then \
+		echo "📥 Downloading Contents-aarch64 file..."; \
+		mkdir -p packages; \
+		wget -O packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64" || \
+		curl -o packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64"; \
+		echo "✅ Downloaded Contents-aarch64 (47MB)"; \
+	else \
+		echo "✅ Contents-aarch64 already available"; \
+	fi
 
 ##
 ## GitHub Release Management Targets
