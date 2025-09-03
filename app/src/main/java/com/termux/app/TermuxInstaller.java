@@ -170,6 +170,7 @@ final class TermuxInstaller {
             {"libnpx.so", "npx"},
             {"libcorepack.so", "corepack"},
             {"libgit.so", "git"},
+            {"libgh.so", "gh"},
             {"libenv.so", "env"},
             {"libenv.so", "printenv"},
             {"libbash.so", "bash"},
@@ -454,7 +455,12 @@ final class TermuxInstaller {
             "# Native executables and libraries are linked from read-only /data/app location\n" +
             "# Executables in " + binDir + "\n" +
             "# Libraries in " + libDir + "\n" +
-            "# Native libraries in " + nativeLibDir + "\n";
+            "# Native libraries in " + nativeLibDir + "\n" +
+            "\n" +
+            "# Source additional environment configuration if available\n" +
+            "if [ -f /data/local/tmp/android_sourceme ]; then\n" +
+            "    source /data/local/tmp/android_sourceme\n" +
+            "fi\n";
             
         try (FileOutputStream outStream = new FileOutputStream(profileFile)) {
             outStream.write(profileContent.getBytes());

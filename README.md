@@ -24,6 +24,8 @@ A modern fork of `termux/termux-app` that eliminates traditional package bootstr
 ```bash
 node --version         # Node.js v24.7.0
 npm --version          # Package manager
+git --version          # Version control v2.23.0
+gh --version           # GitHub CLI v2.78.0
 codex --help           # AI CLI assistance
 apt --version          # Package management
 ls /usr/bin            # 80+ available commands
@@ -58,6 +60,7 @@ ls /usr/bin            # 80+ available commands
 | **Codex CLI** | Latest | Native | AI assistance |
 | **APT** | v2.8.1 | Native | Package management |
 | **Git** | v2.23.0 | Native | Version control system |
+| **GitHub CLI** | v2.78.0 | Native | GitHub integration and automation |
 | **Core Utils** | v9.7-3 | Native | Unix commands (cat, ls, bash, vim, etc.) |
 | **DPKG Suite** | v1.22.6 | Native | Debian package tools |
 
@@ -189,6 +192,8 @@ make github-release  # Automated GitHub release
 - **`codex-exec`**: Non-interactive AI command execution
 - **`node`**: JavaScript runtime and development
 - **`npm`**, **`npx`**: Complete Node.js package ecosystem
+- **`git`**: Version control system with full Git functionality
+- **`gh`**: GitHub CLI for repository management and automation
 
 ### System & Package Management
 - **`apt`**, **`pkg`**: Package management for additional software
