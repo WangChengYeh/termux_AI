@@ -1,4 +1,4 @@
-SOP User Test - Wed Sep  3 08:46:11 CST 2025
+SOP User Test - Wed Sep  3 08:59:07 CST 2025
 === Basic_Command ===
 /data/data/com.termux/files/home
 === Environment_Setup ===
@@ -7,7 +7,6 @@ SOP User Test - Wed Sep  3 08:46:11 CST 2025
 v24.7.0
 === NPM_Version ===
 sh: /data/data/com.termux/files/usr/bin/npm: Permission denied
-126
 === List_Commands ===
 [
 apt
@@ -137,7 +136,7 @@ yes
 === AI_Tools ===
 /data/data/com.termux/files/usr/bin/codex
 === Symbolic_Links ===
-lrwxrwxrwx. 1 u0_a375 u0_a375 93 Sep  3 08:45 /data/data/com.termux/files/usr/bin/node -> /data/app/~~YYNt0PhFl8Spx974M258YQ==/com.termux-jhFr-yS3bLREVHi8tEKziw==/lib/arm64/libnode.so
+lrwxrwxrwx. 1 u0_a378 u0_a378 93 Sep  3 08:58 /data/data/com.termux/files/usr/bin/node -> /data/app/~~eWdXMkEpdmGQlLpswxNwsA==/com.termux-Qai4d42PkS2QXkl0CbXpVQ==/lib/arm64/libnode.so
 === Library_Path ===
 libandroid-glob.so
 libandroid-selinux.so
@@ -192,7 +191,6 @@ libncurses6.so
 libncursesw.so
 libncursesw.so.6
 libncursesw6.so
-libnode.so
 libpcre2-16.so
 libpcre2-32.so
 libpcre2-8.so
@@ -204,9 +202,6 @@ libsqlite3.so
 libsqlite3.so.0
 libssl.so.3
 libssl3.so
-libstart-stop-daemon.so
-libupdate-alternatives.so
-libvim.so
 libxxhash.so.0
 libxxhash0.so
 libz.so
