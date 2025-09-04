@@ -622,6 +622,9 @@ final class TermuxInstaller {
         // Extract usr/lib supporting files (including node_modules)
         extractAssetDirectory(assets, "termux/usr/lib", termuxDir + "/lib");
         
+        // Extract usr/etc configuration files (CA certificates, DNS config, etc.)
+        extractAssetDirectory(assets, "termux/usr/etc", termuxDir + "/etc");
+        
         Logger.logInfo(LOG_TAG, "Assets extracted successfully");
     }
     

@@ -23,12 +23,13 @@ A modern fork of `termux/termux-app` that eliminates traditional package bootstr
 ### Immediate Usage
 ```bash
 node --version         # Node.js v24.7.0
-npm --version          # Package manager
-git --version          # Version control v2.23.0
+npm --version          # Package manager v11.5.1
+git --version          # Version control v2.51.0
 gh --version           # GitHub CLI v2.78.0
 codex --help           # AI CLI assistance
-apt --version          # Package management
-ls /usr/bin            # 80+ available commands
+apt --version          # Package management v2.8.1
+curl --version         # Data transfer tool v8.15.0
+ls /usr/bin            # 296+ available commands
 ```
 
 ## 🏗 Architecture Overview
@@ -52,17 +53,114 @@ ls /usr/bin            # 80+ available commands
 
 ## 📦 Included Software
 
-| Component | Version | Type | Description |
-|-----------|---------|------|-------------|
-| **Node.js** | v24.7.0 | Native | JavaScript runtime |
-| **npm** | v11.5.1 | Script (.so) | Package manager |
-| **npx** | Latest | Script (.so) | Package executor |
-| **Codex CLI** | Latest | Native | AI assistance |
-| **APT** | v2.8.1 | Native | Package management |
-| **Git** | v2.23.0 | Native | Version control system |
-| **GitHub CLI** | v2.78.0 | Native | GitHub integration and automation |
-| **Core Utils** | v9.7-3 | Native | Unix commands (cat, ls, bash, vim, etc.) |
-| **DPKG Suite** | v1.22.6 | Native | Debian package tools |
+### Core Development Tools
+
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **Node.js** | v24.7.0 | JavaScript runtime with V8 engine |
+| **npm** | v11.5.1 | Node.js package manager |
+| **npx** | Latest | Package executor for Node.js |
+| **Git** | v2.51.0 | Distributed version control system |
+| **GitHub CLI** | v2.78.0 | GitHub integration and automation |
+| **Vim** | v9.1.1700 | Advanced text editor |
+| **Bash** | v5.3.3-1 | GNU Bourne Again Shell |
+
+### AI & Automation
+
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **Codex CLI** | v0.25.0 | AI-powered CLI assistant |
+| **Codex-Exec** | v0.25.0 | Non-interactive AI command execution |
+
+### Package Management
+
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **APT** | v2.8.1-2 | Advanced Package Tool |
+| **DPKG** | v1.22.6-4 | Debian package management system |
+| **Core Utils** | v9.7-3 | GNU core utilities (100+ commands) |
+
+### Network & Security
+
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **OpenSSH** | v10.0p2-9 | Secure shell client and server |
+| **curl** | v8.15.0-1 | Command-line data transfer tool |
+| **OpenSSL** | v3.5.2 | Cryptography and SSL/TLS toolkit |
+| **DNS Utils** | v9.20.12 | BIND DNS tools (dig, nslookup, host) |
+| **CA Certificates** | 2025.08.12 | Mozilla CA certificate bundle (146 certs) |
+| **Less** | v679-2 | Terminal pager for viewing text files |
+
+### System Libraries
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| **libicu** | v77.1-1 | Unicode and localization support |
+| **libxml2** | v2.14.5-1 | XML parsing library |
+| **libcurl** | v8.15.0-1 | Data transfer library |
+| **libsqlite** | v3.50.4-1 | SQL database engine |
+| **libgcrypt** | v1.11.2-1 | Cryptographic library |
+| **pcre2** | v10.46 | Perl-compatible regular expressions |
+| **ncurses** | v6.5.20240831-3 | Terminal control library |
+| **readline** | v8.3.1-1 | Command-line editing library |
+| **zlib** | v1.3.1-1 | Compression library |
+| **libiconv** | v1.18-1 | Character encoding conversion |
+| **json-c** | v0.18-1 | JSON parsing library |
+
+### Complete Package List (47 packages, 500MB)
+
+<details>
+<summary>Click to view all packages</summary>
+
+- android-codex-cli-0.25.0
+- apt_2.8.1-2
+- bash_5.3.3-1
+- bzip2_1.0.8-8
+- c-ares_1.34.5
+- ca-certificates_1:2025.08.12
+- coreutils_9.7-3
+- curl_8.15.0-1
+- dnsutils_9.20.12
+- dpkg_1.22.6-4
+- gh_2.78.0
+- git_2.51.0
+- json-c_0.18-1
+- krb5_1.17-2
+- ldns_1.8.4-1
+- less_679-2
+- libandroid-execinfo_0.1-3
+- libandroid-glob_0.6-3
+- libandroid-selinux_14.0.0.11-1
+- libandroid-support_29-1
+- libbz2_1.0.8-8
+- libc++_28c
+- libcurl_8.15.0-1
+- libgcrypt_1.11.2-1
+- libgmp_6.3.0-2
+- libgpg-error_1.55-1
+- libiconv_1.18-1
+- libicu_77.1-1
+- liblzma_5.8.1-1
+- libnghttp2_1.67.0
+- libnghttp3_1.11.0-1
+- libsqlite_3.50.4-1
+- libssh2_1.11.1-1
+- libxml2_2.14.5-1
+- ncurses_6.5.20240831-3
+- nodejs_24.7.0
+- openssh_10.0p2-9
+- openssl_1:3.5.2
+- pcre2_10.46
+- readline_8.3.1-1
+- resolv-conf_1.3
+- termux-exec_1:2.3.0
+- vim_9.1.1700
+- which_2.23
+- xz-utils_5.8.1-1
+- zlib_1.3.1-1
+- zstd_1.5.7-1
+
+</details>
 
 ## 🛠 Development Workflow
 
