@@ -590,7 +590,7 @@ sop-find-lib:
 	@echo "🔍 Finding package containing $(LIBRARY)..."
 	@if [ ! -f "packages/Contents-aarch64" ]; then \
 		echo "❌ packages/Contents-aarch64 not found"; \
-		echo "Download from: https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64"; \
+		echo "Download from: https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz"; \
 		exit 1; \
 	fi
 	@echo "📋 Results from Contents-aarch64:"
@@ -623,10 +623,10 @@ sop-get-contents:
 	@if [ ! -f "packages/Contents-aarch64" ]; then \
 		echo "📥 Downloading Contents-aarch64 file..."; \
 		mkdir -p packages; \
-		# Contents file from termux-main-21 (repository metadata)
-		wget -O packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64" || \
-		curl -o packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64"; \
-		echo "✅ Downloaded Contents-aarch64 (47MB)"; \
+		# Contents file from termux-main (repository metadata) - compressed format
+		wget -O packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip packages/Contents-aarch64.gz || \
+		curl -o packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip packages/Contents-aarch64.gz; \
+		echo "✅ Downloaded and extracted Contents-aarch64 (45MB)"; \
 	else \
 		echo "✅ Contents-aarch64 already available"; \
 	fi
