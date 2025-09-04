@@ -319,7 +319,7 @@ sop-help:
 	@echo "Individual steps:"
 	@echo "  make sop-list LETTER=n                    # List packages starting with 'n'"
 	@echo "  make sop-download PACKAGE_NAME=nodejs VERSION=24.7.0"
-	@echo "  make sop-extract PACKAGE_NAME=nodejs"
+	@echo "  make sop-extract PACKAGE_NAME=nodejs      # Extract to packages/xxx-complete/ (data + control)"
 	@echo "  make sop-analyze PACKAGE_NAME=nodejs"
 	@echo "  make sop-copy PACKAGE_NAME=nodejs"
 	@echo "  make sop-update PACKAGE_NAME=nodejs      # Updates TermuxInstaller.java if needed"
@@ -331,7 +331,7 @@ sop-help:
 	@echo "  make sop-add-deps PACKAGE_NAME=git       # Auto-resolve and add dependencies"
 	@echo ""
 	@echo "Package Analysis:"
-	@echo "  make extract-package PACKAGE_NAME=libgmp # Extract complete package (data + control)"
+	@echo "  make extract-package PACKAGE_NAME=libgmp # Alias for sop-extract (data + control)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make sop-add-package PACKAGE_NAME=libandroid-support VERSION=29-1"
@@ -359,13 +359,13 @@ sop-download:
 	@echo "⬇️ SOP Step 2: Download $(PACKAGE_NAME) version $(VERSION)"
 	@mkdir -p $(PACKAGES_DIR)
 	@# Determine the correct URL path based on package name first letter
-	@FIRST_LETTER=$$(echo "$(PACKAGE_NAME)" | cut -c1); \
-	if echo "$(PACKAGE_NAME)" | grep -q "^lib"; then \
-		URL_PATH="$$(echo "$(PACKAGE_NAME)" | cut -c1-4)"; \
+	@if echo "$(PACKAGE_NAME)" | grep -q "^lib"; then \
+		URL_PATH=$$(echo "$(PACKAGE_NAME)" | cut -c1-4); \
+		PKG_URL="https://packages.termux.dev/apt/termux-main/pool/main/$$URL_PATH/$(PACKAGE_NAME)/$(PACKAGE_NAME)_$(VERSION)_aarch64.deb"; \
 	else \
-		URL_PATH="$$FIRST_LETTER"; \
+		URL_PATH=$$(echo "$(PACKAGE_NAME)" | cut -c1); \
+		PKG_URL="https://packages.termux.dev/apt/termux-main/pool/main/$$URL_PATH/$(PACKAGE_NAME)/$(PACKAGE_NAME)_$(VERSION)_aarch64.deb"; \
 	fi; \
-	PKG_URL="https://packages.termux.dev/apt/termux-main/pool/main/$$URL_PATH/$(PACKAGE_NAME)/$(PACKAGE_NAME)_$(VERSION)_aarch64.deb"; \
 	echo "Downloading from: $$PKG_URL"; \
 	wget -O $(PACKAGES_DIR)/$(PACKAGE_NAME)_$(VERSION)_aarch64.deb "$$PKG_URL"
 
@@ -374,10 +374,15 @@ sop-extract:
 		echo "Usage: make sop-extract PACKAGE_NAME=nodejs"; \
 		exit 1; \
 	fi
-	@echo "📦 SOP Step 3: Extract $(PACKAGE_NAME) package contents"
-	@mkdir -p $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract
-	@dpkg-deb -x $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/
-	@echo "Extracted to: $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/"
+	@echo "📦 SOP Step 3: Extract $(PACKAGE_NAME) package contents (data + control)"
+	@EXTRACT_DIR="$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete"; \
+	rm -rf "$$EXTRACT_DIR"; \
+	mkdir -p "$$EXTRACT_DIR"; \
+	echo "🔧 Extracting control files..."; \
+	dpkg-deb --control $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb "$$EXTRACT_DIR/control"; \
+	echo "🔧 Extracting data files..."; \
+	dpkg-deb --extract $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb "$$EXTRACT_DIR/data"; \
+	echo "✅ Complete extraction to: $$EXTRACT_DIR/"
 
 sop-analyze:
 	@if [ -z "$(PACKAGE_NAME)" ]; then \
@@ -386,14 +391,18 @@ sop-analyze:
 	fi
 	@echo "🔍 SOP Step 4: Analyze $(PACKAGE_NAME) package structure"
 	@echo ""
+	@echo "📋 Package Information:"
+	@echo "======================"
+	@cat $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/control/control 2>/dev/null || echo "  (no control file found)"
+	@echo ""
 	@echo "Executables in /usr/bin:"
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" || echo "  (none found)"
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/bin/*" 2>/dev/null || echo "  (none found)"
 	@echo ""
 	@echo "Libraries in /usr/lib:"
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/lib/*" -name "*.so*" || echo "  (none found)"
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/lib/*" -name "*.so*" 2>/dev/null || echo "  (none found)"
 	@echo ""
 	@echo "File types (determines integration method):"
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -path "*/usr/bin/*" -type f | while read file; do \
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -path "*/usr/bin/*" -type f 2>/dev/null | while read file; do \
 		filetype=$$(file "$$file" | cut -d: -f2); \
 		filename=$$(basename "$$file"); \
 		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
@@ -413,7 +422,7 @@ sop-copy:
 	@mkdir -p $(ASSETS_DIR)/usr/bin
 	@mkdir -p $(ASSETS_DIR)/usr/lib
 	@# Copy files based on type (native vs script)
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/bin/*" 2>/dev/null | while read file; do \
 		filename=$$(basename "$$file"); \
 		filetype=$$(file "$$file" | cut -d: -f2); \
 		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
@@ -429,7 +438,7 @@ sop-copy:
 		fi; \
 	done 2>/dev/null || true
 	@# Copy shared libraries keeping original names
-	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/lib/*" -name "*.so*" | while read file; do \
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/lib/*" -name "*.so*" 2>/dev/null | while read file; do \
 		filename=$$(basename "$$file"); \
 		target="$(JNILIBS_DIR)/$$filename"; \
 		echo "  LIBRARY: $$filename -> jniLibs/"; \
@@ -437,9 +446,9 @@ sop-copy:
 		chmod +x "$$target"; \
 	done || true
 	@# Copy supporting directories for scripts (like node_modules)
-	@if [ -d "$(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/data/data/com.termux/files/usr/lib/node_modules" ]; then \
+	@if [ -d "$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data/data/com.termux/files/usr/lib/node_modules" ]; then \
 		echo "  DEPENDENCIES: node_modules -> assets/termux/usr/lib/"; \
-		cp -r "$(PACKAGES_DIR)/$(PACKAGE_NAME)-extract/data/data/com.termux/files/usr/lib/node_modules" \
+		cp -r "$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data/data/com.termux/files/usr/lib/node_modules" \
 		      "$(ASSETS_DIR)/usr/lib/"; \
 	fi
 	@echo "Files copied to jniLibs and assets based on type"
@@ -455,7 +464,7 @@ sop-update:
 	@# Check for native executables that need TermuxInstaller.java updates
 	@NATIVE_COUNT=0; \
 	SCRIPT_COUNT=0; \
-	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/bin/*" 2>/dev/null | while read file; do \
 		filetype=$$(file "$$file" | cut -d: -f2); \
 		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
 			NATIVE_COUNT=$$((NATIVE_COUNT + 1)); \
@@ -466,7 +475,7 @@ sop-update:
 	echo "Analysis: Found native and script executables"; \
 	echo ""; \
 	echo "NATIVE executables (require TermuxInstaller.java entries):"; \
-	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/bin/*" 2>/dev/null | while read file; do \
 		filename=$$(basename "$$file"); \
 		filetype=$$(file "$$file" | cut -d: -f2); \
 		if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
@@ -475,7 +484,7 @@ sop-update:
 	done 2>/dev/null || true; \
 	echo ""; \
 	echo "SCRIPT files (handled automatically by asset extraction):"; \
-	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-extract -type f -path "*/usr/bin/*" | while read file; do \
+	find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/usr/bin/*" 2>/dev/null | while read file; do \
 		filename=$$(basename "$$file"); \
 		filetype=$$(file "$$file" | cut -d: -f2); \
 		if ! echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
@@ -595,14 +604,14 @@ sop-add-deps:
 		exit 1; \
 	fi
 	@echo "📦 Resolving dependencies for $(PACKAGE_NAME)..."
-	@EXTRACT_DIR="packages/$(PACKAGE_NAME)-extract"; \
+	@EXTRACT_DIR="packages/$(PACKAGE_NAME)-complete"; \
 	if [ ! -d "$$EXTRACT_DIR" ]; then \
 		echo "❌ Package $(PACKAGE_NAME) not extracted yet"; \
 		echo "Run: make sop-extract PACKAGE_NAME=$(PACKAGE_NAME)"; \
 		exit 1; \
 	fi; \
 	echo "🔍 Checking runtime dependencies..."; \
-	find "$$EXTRACT_DIR" -name "*.so*" -o -perm +111 -type f | while read -r file; do \
+	find "$$EXTRACT_DIR/data" -name "*.so*" -o -perm +111 -type f 2>/dev/null | while read -r file; do \
 		if [ -x "$$file" ] && file "$$file" | grep -q "ELF.*ARM aarch64"; then \
 			echo "📄 Analyzing: $$(basename $$file)"; \
 			readelf -d "$$file" 2>/dev/null | grep "NEEDED" | sed 's/.*\[\(.*\)\]/  - \1/' || echo "  - No dynamic dependencies"; \
@@ -614,6 +623,7 @@ sop-get-contents:
 	@if [ ! -f "packages/Contents-aarch64" ]; then \
 		echo "📥 Downloading Contents-aarch64 file..."; \
 		mkdir -p packages; \
+		# Contents file from termux-main-21 (repository metadata)
 		wget -O packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64" || \
 		curl -o packages/Contents-aarch64 "https://packages.termux.dev/apt/termux-main-21/dists/stable/Contents-aarch64"; \
 		echo "✅ Downloaded Contents-aarch64 (47MB)"; \

@@ -1,0 +1,47 @@
+#!/data/data/com.termux/files/usr/bin/sh
+
+prefix="/data/data/com.termux/files/usr"
+exec_prefix="${prefix}"
+VERSION="1.8.4"
+CFLAGS="-DOPENSSL_API_COMPAT=10100 -fno-strict-aliasing -Wunused-function -Wstrict-prototypes -Wwrite-strings -W -Wall  -fstack-protector-strong -Oz"
+CPPFLAGS=" -isystem/data/data/com.termux/files/usr/include/c++/v1 -isystem/data/data/com.termux/files/usr/include  -I/data/data/com.termux/files/usr/include"
+LDFLAGS="-L/data/data/com.termux/files/usr/lib -Wl,-rpath=/data/data/com.termux/files/usr/lib -Wl,--enable-new-dtags -Wl,--as-needed -Wl,-z,relro,-z,now  -L/data/data/com.termux/files/usr/lib"
+PYTHON_CPPFLAGS=""
+PYTHON_LDFLAGS="@PYTHON_LDFLAGS@"
+LIBS=" -lssl  -lcrypto"
+LIBDIR="/data/data/com.termux/files/usr/lib"
+INCLUDEDIR="/data/data/com.termux/files/usr/include"
+LIBVERSION="9:0:6"
+
+
+for arg in $@
+do
+    if [ $arg = "--cflags" ]
+    then
+        echo "-I${INCLUDEDIR}"
+    fi
+    if [ $arg = "--python-cflags" ]
+    then
+        echo "${PYTHON_CPPFLAGS} -I${INCLUDEDIR}"
+    fi
+    if [ $arg = "--libs" ]
+    then
+        echo "${LDFLAGS} -L${LIBDIR} ${LIBS} -lldns"
+    fi
+    if [ $arg = "--python-libs" ]
+    then
+        echo "${LDFLAGS} ${PYTHON_LDFLAGS} -L${LIBDIR} ${LIBS} -lldns"
+    fi
+    if [ $arg = "-h" ] || [ $arg = "--help" ]
+    then
+        echo "Usage: $0 [--cflags] [--python-cflags] [--libs] [--python-libs] [--version]"
+    fi
+    if [ $arg = "--version" ]
+    then
+        echo "${VERSION}"
+    fi
+    if [ $arg = "--libversion" ]
+    then
+        echo "${LIBVERSION}"
+    fi
+done

@@ -171,6 +171,16 @@ final class TermuxInstaller {
             {"libcorepack.so", "corepack"},
             {"libgit.so", "git"},
             {"libgh.so", "gh"},
+            {"libcurl-bin.so", "curl"},
+            {"libwhich.so", "which"},
+            {"libssh-keyscan.so", "ssh-keyscan"},
+            {"libsshd.so", "sshd"},
+            {"libsftp.so", "sftp"},
+            {"libssh-agent.so", "ssh-agent"},
+            {"libssh.so", "ssh"},
+            {"libssh-add.so", "ssh-add"},
+            {"libssh-keygen.so", "ssh-keygen"},
+            {"libscp.so", "scp"},
             {"libenv.so", "env"},
             {"libenv.so", "printenv"},
             {"libbash.so", "bash"},
@@ -275,7 +285,34 @@ final class TermuxInstaller {
             {"libcoreutils.so", "vdir"},
             {"libcoreutils.so", "wc"},
             {"libcoreutils.so", "whoami"},
-            {"libcoreutils.so", "yes"}
+            {"libcoreutils.so", "yes"},
+            // Kerberos executables
+            {"libkproplog.so", "kproplog"},
+            {"libkrb5kdc.so", "krb5kdc"},
+            {"libgss-server.so", "gss-server"},
+            {"libktutil.so", "ktutil"},
+            {"libuuclient.so", "uuclient"},
+            {"libsserver.so", "sserver"},
+            {"libkprop.so", "kprop"},
+            {"libkadmin.local.so", "kadmin.local"},
+            {"libkinit.so", "kinit"},
+            {"libkdb5_util.so", "kdb5_util"},
+            {"libkpropd.so", "kpropd"},
+            {"libsim_server.so", "sim_server"},
+            {"libkpasswd.so", "kpasswd"},
+            {"libkdestroy.so", "kdestroy"},
+            {"libkvno.so", "kvno"},
+            {"libkadmind.so", "kadmind"},
+            {"libgss-client.so", "gss-client"},
+            {"libuuserver.so", "uuserver"},
+            {"libksu.so", "ksu"},
+            {"libsclient.so", "sclient"},
+            {"libkswitch.so", "kswitch"},
+            {"libkadmin.so", "kadmin"},
+            {"libsim_client.so", "sim_client"},
+            {"libklist.so", "klist"},
+            // DNS tools
+            {"libdrill.so", "drill"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -290,6 +327,7 @@ final class TermuxInstaller {
             "libsqlite3.so",
             "libcrypto3.so",
             "libssl3.so",
+            "libssh2.so",
             "liblzma5.so",
             "libicudata771.so",
             "libicui18n771.so",
@@ -317,7 +355,23 @@ final class TermuxInstaller {
             "libpcre2-8.so",
             "libpcre2-16.so",
             "libpcre2-32.so",
-            "libpcre2-posix.so"
+            "libpcre2-posix.so",
+            "libldns.so",
+            "libverto0.so",
+            "libgssrpc4.so",
+            "libgssapi_krb52.so",
+            "libkdb59.so",
+            "libkrb53.so",
+            "libkadm5clnt_mit11.so",
+            "libkrb5support0.so",
+            "libkadm5srv_mit11.so",
+            "libk5crypto3.so",
+            "libkrad0.so",
+            "libcom_err3.so",
+            "libtermux-exec-ld-preload.so",
+            "libtermux-exec_nos_c_tre.so",
+            "libtermux-exec-linker-ld-preload.so",
+            "libtermux-exec-direct-ld-preload.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -372,7 +426,30 @@ final class TermuxInstaller {
             {"libncurses6.so", "libncursesw6.so"},
             // GMP versions - GNU Multiple Precision Arithmetic Library
             {"libgmp.so", "libgmp.so.10"},
-            {"libgmpxx.so", "libgmpxx.so.4"}
+            {"libgmpxx.so", "libgmpxx.so.4"},
+            // Kerberos/GSSAPI versions
+            {"libgssapi_krb52.so", "libgssapi_krb5.so.2"},
+            {"libgssapi_krb52.so", "libgssapi_krb5.so"},
+            {"libkrb53.so", "libkrb5.so.3"},
+            {"libkrb53.so", "libkrb5.so"},
+            {"libk5crypto3.so", "libk5crypto.so.3"},
+            {"libk5crypto3.so", "libk5crypto.so"},
+            {"libkrb5support0.so", "libkrb5support.so.0"},
+            {"libkrb5support0.so", "libkrb5support.so"},
+            {"libcom_err3.so", "libcom_err.so.3"},
+            {"libcom_err3.so", "libcom_err.so"},
+            {"libverto0.so", "libverto.so.0"},
+            {"libverto0.so", "libverto.so"},
+            {"libgssrpc4.so", "libgssrpc.so.4"},
+            {"libgssrpc4.so", "libgssrpc.so"},
+            {"libkdb59.so", "libkdb5.so.9"},
+            {"libkdb59.so", "libkdb5.so"},
+            {"libkadm5clnt_mit11.so", "libkadm5clnt_mit.so.11"},
+            {"libkadm5clnt_mit11.so", "libkadm5clnt_mit.so"},
+            {"libkadm5srv_mit11.so", "libkadm5srv_mit.so.11"},
+            {"libkadm5srv_mit11.so", "libkadm5srv_mit.so"},
+            {"libkrad0.so", "libkrad.so.0"},
+            {"libkrad0.so", "libkrad.so"}
         };
         
         // Create symlinks for executables in /usr/bin

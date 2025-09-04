@@ -1,0 +1,203 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# shellcheck shell=sh
+# shellcheck disable=SC2039,SC2059,SC3043
+
+termux_exec__ld_preload_lib__init() {
+
+TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL___N="TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL"
+termux_exec__ld_preload_lib__copy_variable TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL___N" || return $?
+case "${TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL:-}" in
+    0|1|2) :;; *) TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL=1;; # Default: `1` (OFF=0, NORMAL=1, DEBUG=2)
+esac
+
+TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL___N="TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL"
+
+TERMUX__PREFIX___N="TERMUX__PREFIX"
+termux_exec__ld_preload_lib__copy_variable TERMUX__PREFIX "$TERMUX__PREFIX___N" || return $?
+case "${TERMUX__PREFIX:-}" in
+    /*[!/]) :;; *) TERMUX__PREFIX="/data/data/com.termux/files/usr";;
+esac
+
+}
+
+
+
+termux_exec__ld_preload_lib__log() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@"; fi }
+termux_exec__ld_preload_lib__log_error() { echo "termux-exec:" "$@" 1>&2; }
+termux_exec__ld_preload_lib__log_error_for_level() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@" 1>&2; fi }
+
+
+
+##
+# `termux_exec__ld_preload_lib__main` [`<argument...>`]
+##
+termux_exec__ld_preload_lib__main() {
+
+    termux_exec__ld_preload_lib__init || return $?
+
+
+    if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+        termux_exec__ld_preload_lib__show_help || return $?
+        return 0
+    elif [ "${1:-}" = "--version" ]; then
+        echo "termux-exec-ld-preload-lib version=1:2.3.0 org=termux project=termux-exec-package"; return $?
+        return 0
+    fi
+
+
+    local command_type="${1:-}"
+    [ $# -gt 0 ] && shift 1
+
+    if [ "$command_type" = "setup" ]; then
+        if [ "${1:-}" = "-q" ] || [ "${1:-}" = "--quiet" ]; then
+            TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL=0
+            shift 1
+        elif [ "${1:-}" = "-v" ]; then
+            TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL=2
+            shift 1
+        fi
+    else
+        echo "The command '$command_type' passed to 'termux-exec-ld-preload-lib' is not valid." 1>&2
+        return 64 # EX__USAGE
+    fi
+
+
+    termux_exec__ld_preload_lib__set_variable "$TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL___N" "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL" || return $?
+    export "${TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL___N?}" || return $?
+
+
+    if [ "$command_type" = "setup" ]; then
+        termux_exec__ld_preload_lib__setup__run_command setup || return $?
+    fi
+
+    return 0
+
+}
+
+
+
+##
+# `termux_exec__ld_preload_lib__setup__run_command`
+##
+termux_exec__ld_preload_lib__setup__run_command() {
+
+    local system_linker_exec_enabled
+
+    system_linker_exec_enabled="$(termux-exec-system-linker-exec is-enabled)" || return $?
+
+    local ld_preload_file
+
+    if [ "$system_linker_exec_enabled" != "true" ]; then
+        ld_preload_file="$TERMUX__PREFIX/lib/libtermux-exec-direct-ld-preload.so"
+    else
+        ld_preload_file="$TERMUX__PREFIX/lib/libtermux-exec-linker-ld-preload.so"
+    fi
+    termux_exec__ld_preload_lib__log 1 "Setting primary Termux '\$LD_PRELOAD' library in 'libtermux-exec-ld-preload.so' to '$ld_preload_file'"
+
+    mkdir -p "$TERMUX__PREFIX/lib" || return $?
+
+    # Prevent `Segmentation fault (SIGSEGV fault addr)` when running
+    # commands in calling shell of the script after new file has been
+    # copied below.
+    rm -f "$TERMUX__PREFIX/lib/libtermux-exec-ld-preload.so" || return $?
+
+    # Prevent `CANNOT LINK EXECUTABLE "cp": library "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so" not found: needed by main executable`
+    unset LD_PRELOAD || return $?
+
+    cp -a "$ld_preload_file" "$TERMUX__PREFIX/lib/libtermux-exec-ld-preload.so" || return $?
+
+}
+
+
+
+##
+# `termux_exec__ld_preload_lib__is_valid_shell_name` `<name>`
+##
+termux_exec__ld_preload_lib__is_valid_shell_name() {
+
+    if [ -z "${1:-}" ]; then
+        return 1
+    fi
+
+    local name_rest="${1#?}" # 1:end
+    local name_first_char="${1%"$name_rest"}" # 0:1
+    case "$name_first_char" in
+        [a-zA-Z_])
+            case "$name_rest" in
+                *[!a-zA-Z0-9_]*) return 1;;
+                *) return 0;;
+            esac;;
+        *) return 1;;
+    esac
+
+}
+
+##
+# `termux_exec__ld_preload_lib__set_variable` `<variable_name>` `<variable_value>`
+##
+termux_exec__ld_preload_lib__set_variable() {
+
+    local variable_name="${1:-}"
+    local variable_value="${2:-}"
+
+    if ! termux_exec__ld_preload_lib__is_valid_shell_name "$variable_name"; then
+        termux_exec__ld_preload_lib__log_error "The variable_name '$variable_name' is not a valid shell variable name."
+        return 64 # EX__USAGE
+    fi
+
+    eval "$variable_name"=\"\$variable_value\"
+
+}
+
+termux_exec__ld_preload_lib__copy_variable() {
+
+    local output_variable_name="${1:-}"
+    local input_variable_name="${2:-}"
+
+    if ! termux_exec__ld_preload_lib__is_valid_shell_name "$output_variable_name"; then
+        termux_exec__ld_preload_lib__log_error "The output_variable_name '$output_variable_name' is not a valid shell variable name."
+        return 1
+    fi
+
+    if ! termux_exec__ld_preload_lib__is_valid_shell_name "$input_variable_name"; then
+        termux_exec__ld_preload_lib__log_error "The input_variable_name '$input_variable_name' is not a valid shell variable name."
+        return 1
+    fi
+
+    eval "$output_variable_name"=\"\$\{"$input_variable_name":-\}\"
+
+}
+
+
+
+##
+# `termux_exec__ld_preload_lib__show_help`
+##
+termux_exec__ld_preload_lib__show_help() {
+
+    cat <<'HELP_EOF'
+termux-exec-ld-preload-lib can be used to manage Termux '$LD_PRELOAD'
+library.
+
+
+Usage:
+    termux-exec-ld-preload-lib [command_options] <command>
+
+Available commands:
+    setup                     Setup the primary Termux '$LD_PRELOAD'
+                              library in 'libtermux-exec-ld-preload.so'
+                              to direct or linker variant.
+
+Available command_options:
+    [ -h | --help ]           Display this help screen.
+    [ --version ]             Display version.
+    [ -q | --quiet ]          Set log level to 'OFF'.
+    [ -v ]
+                              Set log level to 'DEBUG'.
+HELP_EOF
+
+}
+
+
+
+termux_exec__ld_preload_lib__main "$@"
