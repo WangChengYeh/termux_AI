@@ -175,8 +175,20 @@ make github-release  # Automated GitHub release
 ├── bin/                               # All symlinks to /data/app
 │   ├── node -> /data/app/.../lib/arm64/libnode.so
 │   ├── npm -> /data/app/.../lib/arm64/libnpm.so
-│   └── npx -> /data/app/.../lib/arm64/libnpx.so
+│   ├── git -> /data/app/.../lib/arm64/libgit.so
+│   └── gh -> /data/app/.../lib/arm64/libgh.so
 └── lib/                              # Libraries + node_modules from assets
+```
+
+### Environment Customization
+The `.profile` automatically sources `/data/local/tmp/android_sourceme` if it exists, allowing for custom environment setup:
+
+```bash
+# Place custom configuration in /data/local/tmp/android_sourceme
+adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
+
+# The file will be automatically sourced on app launch
+# See examples/android_sourceme_example.sh for configuration ideas
 ```
 
 ### Key Modifications
