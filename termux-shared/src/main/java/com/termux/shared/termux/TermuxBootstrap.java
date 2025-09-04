@@ -103,9 +103,9 @@ public class TermuxBootstrap {
         return PackageVariant.APT_ANDROID_7.equals(TERMUX_APP_PACKAGE_VARIANT);
     }
 
-    /** Is {@link PackageVariant#APT_ANDROID_5} set as {@link #TERMUX_APP_PACKAGE_VARIANT}. */
+    /** Is APT Android 5 variant set (deprecated - always returns false). */
     public static boolean isAppPackageVariantAPTAndroid5() {
-        return PackageVariant.APT_ANDROID_5.equals(TERMUX_APP_PACKAGE_VARIANT);
+        return false;
     }
 
     ///** Is {@link PackageVariant#TAPM_ANDROID_7} set as {@link #TERMUX_APP_PACKAGE_VARIANT}. */

@@ -312,7 +312,40 @@ final class TermuxInstaller {
             {"libsim_client.so", "sim_client"},
             {"libklist.so", "klist"},
             // DNS tools
-            {"libdrill.so", "drill"}
+            {"libdrill.so", "drill"},
+            // DNS utilities from BIND 9.20.12
+            {"libdig.so", "dig"},
+            {"libnslookup.so", "nslookup"},
+            {"libhost.so", "host"},
+            {"libdelv.so", "delv"},
+            {"libnsupdate.so", "nsupdate"},
+            {"libarpaname.so", "arpaname"},
+            {"libmdig.so", "mdig"},
+            {"libnamed.so", "named"},
+            {"librndc.so", "rndc"},
+            {"librndc-confgen.so", "rndc-confgen"},
+            {"libddns-confgen.so", "ddns-confgen"},
+            {"libtsig-keygen.so", "tsig-keygen"},
+            {"libnamed-checkconf.so", "named-checkconf"},
+            {"libnamed-checkzone.so", "named-checkzone"},
+            {"libnamed-compilezone.so", "named-compilezone"},
+            {"libnamed-journalprint.so", "named-journalprint"},
+            {"libnamed-rrchecker.so", "named-rrchecker"},
+            {"libdnssec-keygen.so", "dnssec-keygen"},
+            {"libdnssec-signzone.so", "dnssec-signzone"},
+            {"libdnssec-verify.so", "dnssec-verify"},
+            {"libdnssec-dsfromkey.so", "dnssec-dsfromkey"},
+            {"libdnssec-keyfromlabel.so", "dnssec-keyfromlabel"},
+            {"libdnssec-revoke.so", "dnssec-revoke"},
+            {"libdnssec-settime.so", "dnssec-settime"},
+            {"libdnssec-importkey.so", "dnssec-importkey"},
+            {"libdnssec-cds.so", "dnssec-cds"},
+            {"libdnssec-ksr.so", "dnssec-ksr"},
+            {"libnsec3hash.so", "nsec3hash"},
+            // Text pager utilities
+            {"libless.so", "less"},
+            {"liblessecho.so", "lessecho"},
+            {"liblesskey.so", "lesskey"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -368,6 +401,14 @@ final class TermuxInstaller {
             "libk5crypto3.so",
             "libkrad0.so",
             "libcom_err3.so",
+            // BIND 9.20.12 libraries
+            "libisccc-9.20.12.so",
+            "libisc-9.20.12.so", 
+            "libns-9.20.12.so",
+            "libdns-9.20.12.so",
+            "libisccfg-9.20.12.so",
+            "filter-aaaa.so",
+            "filter-a.so",
             "libtermux-exec-ld-preload.so",
             "libtermux-exec_nos_c_tre.so",
             "libtermux-exec-linker-ld-preload.so",
