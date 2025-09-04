@@ -401,6 +401,9 @@ final class TermuxInstaller {
             "libk5crypto3.so",
             "libkrad0.so",
             "libcom_err3.so",
+            "libjson-c.so",
+            "libxml2-16.so",
+            "libandroid-execinfo.so",
             // BIND 9.20.12 libraries
             "libisccc-9.20.12.so",
             "libisc-9.20.12.so", 
@@ -459,6 +462,12 @@ final class TermuxInstaller {
             // history versions
             {"libhistory83.so", "libhistory.so"},
             {"libhistory83.so", "libhistory.so.8"},
+            // libxml2 versions
+            {"libxml2-16.so", "libxml2.so"},
+            {"libxml2-16.so", "libxml2.so.16"},
+            {"libxml2-16.so", "libxml2.so.16.0.5"},
+            // execinfo versions
+            {"libandroid-execinfo.so", "libexecinfo.so"},
             // ncurses versions - unified to libncurses6.so (removed libncursesw6.so)
             {"libncurses6.so", "libncurses.so"},
             {"libncurses6.so", "libncurses.so.6"},
