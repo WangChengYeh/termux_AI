@@ -376,12 +376,18 @@ sop-extract:
 	fi
 	@echo "📦 SOP Step 3: Extract $(PACKAGE_NAME) package contents (data + control)"
 	@EXTRACT_DIR="$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete"; \
+	DEB_FILE=$$(ls $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb | head -1); \
+	if [ ! -f "$$DEB_FILE" ]; then \
+		echo "❌ Package file not found: $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb"; \
+		exit 1; \
+	fi; \
+	echo "🔍 Using package file: $$DEB_FILE"; \
 	rm -rf "$$EXTRACT_DIR"; \
 	mkdir -p "$$EXTRACT_DIR"; \
 	echo "🔧 Extracting control files..."; \
-	dpkg-deb --control $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb "$$EXTRACT_DIR/control"; \
+	dpkg-deb --control "$$DEB_FILE" "$$EXTRACT_DIR/control"; \
 	echo "🔧 Extracting data files..."; \
-	dpkg-deb --extract $(PACKAGES_DIR)/$(PACKAGE_NAME)_*_aarch64.deb "$$EXTRACT_DIR/data"; \
+	dpkg-deb --extract "$$DEB_FILE" "$$EXTRACT_DIR/data"; \
 	echo "✅ Complete extraction to: $$EXTRACT_DIR/"
 
 sop-analyze:
