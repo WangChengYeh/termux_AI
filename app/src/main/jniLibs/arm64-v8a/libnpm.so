@@ -1,2 +1,0 @@
-#!/data/data/com.termux/files/usr/bin/env node
-require('/data/data/com.termux/files/usr/lib/node_modules/npm/lib/cli.js')(process)
