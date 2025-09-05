@@ -1,4 +1,0 @@
-#!/data/data/com.termux/files/usr/bin/env node
-process.env.COREPACK_ENABLE_DOWNLOAD_PROMPT??='0';
-require('module').enableCompileCache?.();
-require('/data/data/com.termux/files/usr/lib/corepack.cjs').runMain(process.argv.slice(2));
