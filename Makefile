@@ -23,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package github-release github-release-notes github-auth-check github-tag-version
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package sop-check github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -64,6 +64,7 @@ help:
 	@echo "  sop-build       - Build and test integration"
 	@echo "  sop-test        - Interactive command testing in live app"
 	@echo "  sop-user-test   - Automated UI testing via ADB input, creates sop-test-latest.log"
+	@echo "  sop-check       - Compare package files between host and device"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -585,6 +586,196 @@ sop-test:
 
 sop-user-test:
 	@APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-user-test.sh
+
+sop-check:
+	@if [ -z "$(PACKAGE_NAME)" ]; then \
+		echo "Usage: make sop-check PACKAGE_NAME=nodejs"; \
+		echo "       make sop-check PACKAGE_NAME=readline"; \
+		echo ""; \
+		echo "This compares files from the extracted .deb package with files"; \
+		echo "actually accessible in the running Termux AI app."; \
+		exit 1; \
+	fi
+	@echo "🔍 SOP Checker: Comparing $(PACKAGE_NAME) files between host and device"
+	@echo "============================================================================"
+	@echo ""
+	@# Check if package is extracted
+	@EXTRACT_DIR="$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete"; \
+	if [ ! -d "$$EXTRACT_DIR" ]; then \
+		echo "❌ Package $(PACKAGE_NAME) not extracted yet"; \
+		echo "Run: make sop-extract PACKAGE_NAME=$(PACKAGE_NAME)"; \
+		exit 1; \
+	fi; \
+	echo "📦 Host Package Analysis"; \
+	echo "========================"; \
+	echo ""; \
+	echo "🔧 Executables in /usr/bin:"; \
+	HOST_BINS=$$(find "$$EXTRACT_DIR/data" \( -type f -o -type l \) -path "*/usr/bin/*" 2>/dev/null); \
+	if [ -n "$$HOST_BINS" ]; then \
+		echo "$$HOST_BINS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			if [ -L "$$file" ]; then \
+				echo "  📜 $$filename (SYMLINK) - Expected in /usr/bin/ via assets"; \
+			else \
+				filetype=$$(file "$$file" | cut -d: -f2 | sed 's/^[[:space:]]*//'); \
+				if echo "$$filetype" | grep -q "ELF.*ARM aarch64"; then \
+					echo "  📄 $$filename (NATIVE) - Expected in /usr/bin/ via jniLibs"; \
+				else \
+					echo "  📜 $$filename (SCRIPT) - Expected in /usr/bin/ via assets"; \
+				fi; \
+			fi; \
+		done; \
+	else \
+		echo "  (none found)"; \
+	fi; \
+	echo ""; \
+	echo "📚 Libraries in /usr/lib:"; \
+	HOST_LIBS=$$(find "$$EXTRACT_DIR/data" \( -type f -o -type l \) -path "*/usr/lib/*" -name "*.so*" 2>/dev/null); \
+	if [ -n "$$HOST_LIBS" ]; then \
+		echo "$$HOST_LIBS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			echo "  🔗 $$filename - Expected in /usr/lib/ via jniLibs"; \
+		done; \
+	else \
+		echo "  (none found)"; \
+	fi; \
+	echo ""; \
+	echo "📱 Device Verification"; \
+	echo "====================="; \
+	echo ""; \
+	echo "🔌 Testing device connection..."; \
+	if ! adb shell run-as $(APP_ID) echo "Connected" >/dev/null 2>&1; then \
+		echo "❌ Cannot connect to device or app not installed"; \
+		echo "Ensure Termux AI is installed and run: make install run"; \
+		exit 1; \
+	fi; \
+	echo "✅ Device connected, app accessible"; \
+	echo ""; \
+	echo "🔧 Checking executables on device:"; \
+	if [ -n "$$HOST_BINS" ]; then \
+		echo "$$HOST_BINS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			DEVICE_BIN="/data/data/$(APP_ID)/files/usr/bin/$$filename"; \
+			if adb shell run-as $(APP_ID) test -f "$$DEVICE_BIN" 2>/dev/null; then \
+				if adb shell run-as $(APP_ID) test -x "$$DEVICE_BIN" 2>/dev/null; then \
+					TARGET=$$(adb shell run-as $(APP_ID) readlink "$$DEVICE_BIN" 2>/dev/null | tr -d '\r' || echo "not-a-link"); \
+					if [ "$$TARGET" = "not-a-link" ]; then \
+						echo "  ✅ $$filename - EXISTS (regular file)"; \
+					else \
+						echo "  ✅ $$filename - EXISTS (symlink → $$TARGET)"; \
+					fi; \
+				else \
+					echo "  ⚠️  $$filename - EXISTS but not executable"; \
+				fi; \
+			else \
+				echo "  ❌ $$filename - MISSING"; \
+			fi; \
+		done; \
+	fi; \
+	echo ""; \
+	echo "📚 Checking libraries on device:"; \
+	if [ -n "$$HOST_LIBS" ]; then \
+		echo "$$HOST_LIBS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			DEVICE_LIB="/data/data/$(APP_ID)/files/usr/lib/$$filename"; \
+			if adb shell run-as $(APP_ID) test -f "$$DEVICE_LIB" 2>/dev/null; then \
+				TARGET=$$(adb shell run-as $(APP_ID) readlink "$$DEVICE_LIB" 2>/dev/null | tr -d '\r' || echo "not-a-link"); \
+				if [ "$$TARGET" = "not-a-link" ]; then \
+					echo "  ✅ $$filename - EXISTS (regular file)"; \
+				else \
+					echo "  ✅ $$filename - EXISTS (symlink → $$TARGET)"; \
+				fi; \
+			else \
+				echo "  ❌ $$filename - MISSING"; \
+			fi; \
+		done; \
+	fi; \
+	echo ""; \
+	echo "🧪 Functional Testing"; \
+	echo "====================="; \
+	echo ""; \
+	if [ -n "$$HOST_BINS" ]; then \
+		echo "$$HOST_BINS" | head -3 | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			echo "🔧 Testing $$filename execution:"; \
+			DEVICE_BIN="/data/data/$(APP_ID)/files/usr/bin/$$filename"; \
+			if adb shell run-as $(APP_ID) test -x "$$DEVICE_BIN" 2>/dev/null; then \
+				if [ "$$filename" = "bash" ] || [ "$$filename" = "sh" ]; then \
+					RESULT=$$(adb shell run-as $(APP_ID) "$$DEVICE_BIN" --version 2>&1 | head -1 | tr -d '\r' || echo "failed"); \
+				elif [ "$$filename" = "node" ]; then \
+					RESULT=$$(adb shell run-as $(APP_ID) "$$DEVICE_BIN" --version 2>&1 | tr -d '\r' || echo "failed"); \
+				elif [ "$$filename" = "vim" ]; then \
+					RESULT=$$(adb shell run-as $(APP_ID) "$$DEVICE_BIN" --version 2>&1 | head -1 | tr -d '\r' || echo "failed"); \
+				else \
+					RESULT=$$(adb shell run-as $(APP_ID) "$$DEVICE_BIN" --version 2>&1 | head -1 | tr -d '\r' || echo "version-failed"); \
+					if [ "$$RESULT" = "version-failed" ]; then \
+						RESULT=$$(adb shell run-as $(APP_ID) "$$DEVICE_BIN" --help 2>&1 | head -1 | tr -d '\r' || echo "help-failed"); \
+						if [ "$$RESULT" = "help-failed" ]; then \
+							RESULT=$$(adb shell run-as $(APP_ID) echo "test" | "$$DEVICE_BIN" 2>&1 >/dev/null && echo "executable" || echo "failed"); \
+						fi; \
+					fi; \
+				fi; \
+				if echo "$$RESULT" | grep -q "failed\|not found\|command not found\|CANNOT LINK"; then \
+					echo "  ❌ FAILED: $$RESULT"; \
+				else \
+					echo "  ✅ OK: $$RESULT"; \
+				fi; \
+			else \
+				echo "  ❌ SKIPPED: Not executable or missing"; \
+			fi; \
+		done; \
+	fi; \
+	echo ""; \
+	echo "📊 Summary"; \
+	echo "=========="; \
+	TOTAL_FILES=0; \
+	MISSING_FILES=0; \
+	if [ -n "$$HOST_BINS" ]; then \
+		TOTAL_FILES=$$(echo "$$HOST_BINS" | wc -l | tr -d ' '); \
+		echo "$$HOST_BINS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			DEVICE_BIN="/data/data/$(APP_ID)/files/usr/bin/$$filename"; \
+			if ! adb shell run-as $(APP_ID) test -f "$$DEVICE_BIN" 2>/dev/null; then \
+				echo "$$filename" >> /tmp/missing_files_$$$$; \
+			fi; \
+		done; \
+		if [ -f "/tmp/missing_files_$$$$" ]; then \
+			MISSING_FILES=$$(cat /tmp/missing_files_$$$$ | wc -l | tr -d ' '); \
+			rm -f /tmp/missing_files_$$$$; \
+		fi; \
+	fi; \
+	if [ -n "$$HOST_LIBS" ]; then \
+		LIB_COUNT=$$(echo "$$HOST_LIBS" | wc -l | tr -d ' '); \
+		TOTAL_FILES=$$((TOTAL_FILES + LIB_COUNT)); \
+		echo "$$HOST_LIBS" | while read -r file; do \
+			filename=$$(basename "$$file"); \
+			DEVICE_LIB="/data/data/$(APP_ID)/files/usr/lib/$$filename"; \
+			if ! adb shell run-as $(APP_ID) test -f "$$DEVICE_LIB" 2>/dev/null; then \
+				echo "$$filename" >> /tmp/missing_libs_$$$$; \
+			fi; \
+		done; \
+		if [ -f "/tmp/missing_libs_$$$$" ]; then \
+			MISSING_LIBS=$$(cat /tmp/missing_libs_$$$$ | wc -l | tr -d ' '); \
+			MISSING_FILES=$$((MISSING_FILES + MISSING_LIBS)); \
+			rm -f /tmp/missing_libs_$$$$; \
+		fi; \
+	fi; \
+	PRESENT_FILES=$$((TOTAL_FILES - MISSING_FILES)); \
+	if [ $$TOTAL_FILES -eq 0 ]; then \
+		echo "📄 No files found in $(PACKAGE_NAME) package"; \
+	elif [ $$MISSING_FILES -eq 0 ]; then \
+		echo "✅ All $$TOTAL_FILES files from $(PACKAGE_NAME) are present and accessible"; \
+	else \
+		echo "⚠️  $$PRESENT_FILES/$$TOTAL_FILES files present ($$MISSING_FILES missing)"; \
+		echo ""; \
+		echo "💡 Troubleshooting:"; \
+		echo "  1. Ensure the app has been launched: make run"; \
+		echo "  2. Check TermuxInstaller.java includes native executables"; \
+		echo "  3. Verify assets are properly copied for scripts"; \
+		echo "  4. Check library dependencies: make sop-add-deps PACKAGE_NAME=$(PACKAGE_NAME)"; \
+	fi; \
+	echo ""; \
+	echo "============================================================================"
 
 # Find which package contains a library
 sop-find-lib:

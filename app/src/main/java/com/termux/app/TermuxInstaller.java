@@ -388,6 +388,8 @@ final class TermuxInstaller {
             "libmd.so",
             "libandroid-support.so",
             "libreadline83.so",
+            "libreadline8.so",
+            "libhistory8.so",
             "libhistory83.so",
             "libncurses6.so",
             "libcoreutils.so",
@@ -472,11 +474,13 @@ final class TermuxInstaller {
             // xxhash versions
             {"libxxhash0.so", "libxxhash.so.0"},
             // readline versions
+            {"libreadline8.so", "libreadline.so.8"},
+            {"libreadline8.so", "libreadline.so.8.3"},
             {"libreadline83.so", "libreadline.so"},
-            {"libreadline83.so", "libreadline.so.8"},
             // history versions
+            {"libhistory8.so", "libhistory.so.8"},
+            {"libhistory8.so", "libhistory.so.8.3"},
             {"libhistory83.so", "libhistory.so"},
-            {"libhistory83.so", "libhistory.so.8"},
             // libxml2 versions
             {"libxml2-16.so", "libxml2.so"},
             {"libxml2-16.so", "libxml2.so.16"},
