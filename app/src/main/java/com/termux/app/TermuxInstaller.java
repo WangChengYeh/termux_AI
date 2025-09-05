@@ -153,6 +153,10 @@ final class TermuxInstaller {
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
             {"libapt.so", "apt"},
+            {"libapt-mark.so", "apt-mark"},
+            {"libapt-cache.so", "apt-cache"},
+            {"libapt-config.so", "apt-config"},
+            {"libapt-get.so", "apt-get"},
             {"libdpkg.so", "dpkg"},
             {"libdpkg-buildapi.so", "dpkg-buildapi"},
             {"libdpkg-buildtree.so", "dpkg-buildtree"},
@@ -177,6 +181,7 @@ final class TermuxInstaller {
             {"libgit-imap-send.so", "git-imap-send"},
             {"libgit-remote-http.so", "git-remote-http"},
             {"libgit-sh-i18n--envsubst.so", "git-sh-i18n--envsubst"},
+            {"libgit-receive-pack.so", "git-receive-pack"},
             {"gh.so", "gh"},
             {"libcurl-bin.so", "curl"},
             {"libwhich.so", "which"},
@@ -192,6 +197,7 @@ final class TermuxInstaller {
             {"libenv.so", "printenv"},
             {"libbash.so", "bash"},
             {"libvim.so", "vim"},
+            {"libvim.so", "rview"},
             // Coreutils 9.7-3 - multicall binary with 100+ utilities
             {"libcoreutils.so", "["},
             {"libcoreutils.so", "b2sum"},
@@ -354,7 +360,23 @@ final class TermuxInstaller {
             {"liblessecho.so", "lessecho"},
             {"liblesskey.so", "lesskey"},
             // Web terminal
-            {"libttyd.so", "ttyd"}
+            {"libttyd.so", "ttyd"},
+            // Android Codex CLI
+            {"libcodex.so", "codex"},
+            {"libcodex-exec.so", "codex-exec"},
+            // Compression utilities
+            {"libbzip2recover.so", "bzip2recover"},
+            {"liblzmainfo.so", "lzmainfo"},
+            // Terminal utilities
+            {"libtset.so", "tset"},
+            // Cryptographic utilities
+            {"libdumpsexp.so", "dumpsexp"},
+            {"libmpicalc.so", "mpicalc"},
+            {"libhmac256.so", "hmac256"},
+            {"libgpg-error.so", "gpg-error"},
+            {"libyat2m.so", "yat2m"},
+            // Compression utilities
+            {"libzstd.so", "zstd"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -362,6 +384,10 @@ final class TermuxInstaller {
             "libandroid-glob.so",
             "libapt-private.so", 
             "libapt-pkg.so",
+            "libapt-mark.so",
+            "libapt-cache.so", 
+            "libapt-config.so",
+            "libapt-get.so",
             "libc++_shared.so",
             "libz.so",
             "libcares.so",
@@ -436,7 +462,14 @@ final class TermuxInstaller {
             "libtermux-exec-direct-ld-preload.so",
             // Web terminal support
             "libwebsockets.so",
-            "libwebsockets-evlib_uv.so"
+            "libwebsockets-evlib_uv.so",
+            "libgit-receive-pack.so",
+            // Additional missing libraries
+            "libnghttp3.so",
+            "libuv.so",
+            "libxml2-16.so",
+            "libkrad0.so",
+            "libisccfg.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib

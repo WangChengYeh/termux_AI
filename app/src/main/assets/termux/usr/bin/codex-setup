@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/bash
+echo "🤖 Setting up Android Codex CLI 0.25.0"
+echo "======================================"
+mkdir -p ~/.config/codex
+chmod +x /data/data/com.termux/files/usr/bin/codex*
+echo "✅ Setup complete!"
