@@ -417,8 +417,15 @@ final class TermuxInstaller {
             "libns-9.20.12.so",
             "libdns-9.20.12.so",
             "libisccfg-9.20.12.so",
-            "filter-aaaa.so",
-            "filter-a.so",
+            // Kerberos plugins (renamed to libxxx.so)
+            "libfilter-aaaa.so",
+            "libfilter-a.so",
+            "libdb2.so",
+            "libk5tls.so",
+            "libotp.so",
+            "libpkinit.so",
+            "libspake.so",
+            "libtest.so",
             "libtermux-exec-ld-preload.so",
             "libtermux-exec_nos_c_tre.so",
             "libtermux-exec-linker-ld-preload.so",
@@ -506,7 +513,16 @@ final class TermuxInstaller {
             {"libkadm5srv_mit11.so", "libkadm5srv_mit.so.11"},
             {"libkadm5srv_mit11.so", "libkadm5srv_mit.so"},
             {"libkrad0.so", "libkrad.so.0"},
-            {"libkrad0.so", "libkrad.so"}
+            {"libkrad0.so", "libkrad.so"},
+            // Kerberos plugins - symlinks to original names (without lib prefix)
+            {"libfilter-aaaa.so", "filter-aaaa.so"},
+            {"libfilter-a.so", "filter-a.so"},
+            {"libdb2.so", "db2.so"},
+            {"libk5tls.so", "k5tls.so"},
+            {"libotp.so", "otp.so"},
+            {"libpkinit.so", "pkinit.so"},
+            {"libspake.so", "spake.so"},
+            {"libtest.so", "test.so"}
         };
         
         // Create symlinks for executables in /usr/bin
