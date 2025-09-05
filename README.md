@@ -57,12 +57,12 @@ ls /usr/bin            # 296+ available commands
 node (binary) → Extract → Install → Set permissions → Symlink
 
 # Termux AI approach  
-node (binary) → Rename to libnode.so → Place in jniLibs/ → Android handles everything
+node (binary) → Rename to node.so → Place in jniLibs/ → Android handles everything
 ```
 
 **Step-by-step process:**
-1. **Binary executables** (node, git, gh) → Add `.so` postfix → `libnode.so`, `libgit.so`
-2. **Script files** (npm, npx) → Add `.so` postfix → `libnpm.so`, `libnpx.so`
+1. **Binary executables** (node, git, gh) → Add `.so` postfix → `node.so`, `git.so`
+2. **Script files** (npm, npx) → Also become `.so` files → `npm.so`, `npx.so`
 3. **Android APK build** → Automatically includes all `.so` files from `jniLibs/arm64-v8a/`
 4. **App installation** → Android extracts to `/data/app/.../lib/arm64/` (read-only, executable)
 5. **First launch** → `TermuxInstaller.java` creates symbolic links in `/usr/bin/`
@@ -322,16 +322,16 @@ adb shell run-as com.termux     # 🔌 Direct shell access for debugging
 
 | File Type | Original | Termux AI Location | Example |
 |-----------|----------|-------------------|----------|
-| **ARM64 Binary** | `node` | `jniLibs/arm64-v8a/libnode.so` | Node.js runtime |
-| **Script File** | `npm` | `jniLibs/arm64-v8a/libnpm.so` | Package manager |
+| **ARM64 Binary** | `node` | `jniLibs/arm64-v8a/node.so` | Node.js runtime |
+| **Script File** | `npm` | `jniLibs/arm64-v8a/npm.so` | Package manager script |
 | **Shared Library** | `libssl.so.3` | `jniLibs/arm64-v8a/libssl3.so` | OpenSSL library |
-| **Dependencies** | `node_modules/` | `assets/termux/usr/lib/node_modules/` | NPM packages |
+| **Dependencies** | `node_modules/` | `assets/termux/usr/lib/node_modules/` | NPM ecosystem |
 
 **Key Insights:**
-- ✅ **Any ARM64 executable** → Just add `.so` postfix (Android doesn't require `lib` prefix)
-- ✅ **Scripts work too** → Shebang line ensures proper interpreter execution
-- ✅ **Libraries simplified** → Version numbers in filename (`libssl3.so` vs `libssl.so.3`)
-- ✅ **Assets for data** → Large dependency trees go in `assets/` directory
+- ✅ **No `lib` prefix needed** → Executables use simple naming: `node.so`, `git.so`, `npm.so`
+- ✅ **Unified approach** → Both binaries and scripts get `.so` postfix and go in `jniLibs/`
+- ✅ **Libraries keep prefix** → System libraries use `lib` prefix: `libssl3.so`, `libcurl.so`
+- ✅ **Assets for data** → Large dependency trees (node_modules) go in `assets/` directory
 
 ## 🔧 Technical Deep Dive
 
@@ -378,22 +378,26 @@ termux_AI/
 ```
 📱 Android System Locations (Read-only, W^X compliant)
 /data/app/~~long-hash~~/com.termux/lib/arm64/
-├── libnode.so          # Node.js v24.7.0 runtime (24MB)
-├── libnpm.so           # npm package manager script
-├── libgit.so           # Git v2.51.0 binary (2.1MB)
-├── libgh.so            # GitHub CLI v2.78.0 (15MB)
+├── node.so             # Node.js v24.7.0 runtime (24MB)
+├── npm.so              # npm package manager script
+├── npx.so              # npx package executor script
+├── git.so              # Git v2.51.0 binary (2.1MB)
+├── gh.so               # GitHub CLI v2.78.0 (15MB)
 ├── libssl3.so          # OpenSSL v3.5.2 library
 └── libcurl.so          # cURL v8.15.0 library
 
 🏠 Termux Home Environment (Read-write)
 /data/data/com.termux/files/usr/
 ├── bin/                # Symbolic links to Android system locations
-│   ├── node -> /data/app/.../lib/arm64/libnode.so ⚡
-│   ├── npm -> /data/app/.../lib/arm64/libnpm.so   ⚡
-│   ├── git -> /data/app/.../lib/arm64/libgit.so   ⚡
-│   └── gh -> /data/app/.../lib/arm64/libgh.so     ⚡
+│   ├── node -> /data/app/.../lib/arm64/node.so    ⚡
+│   ├── npm -> /data/app/.../lib/arm64/npm.so      ⚡
+│   ├── npx -> /data/app/.../lib/arm64/npx.so      ⚡
+│   ├── git -> /data/app/.../lib/arm64/git.so      ⚡
+│   └── gh -> /data/app/.../lib/arm64/gh.so        ⚡
 ├── lib/
 │   ├── node_modules/   # NPM packages extracted from assets
+│   │   ├── npm/        # NPM package manager
+│   │   └── corepack/   # Node.js package manager manager
 │   └── *.so           # Additional shared libraries
 └── home/              # User workspace (projects, configs)
 ```
