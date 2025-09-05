@@ -352,7 +352,9 @@ final class TermuxInstaller {
             // Text pager utilities
             {"libless.so", "less"},
             {"liblessecho.so", "lessecho"},
-            {"liblesskey.so", "lesskey"}
+            {"liblesskey.so", "lesskey"},
+            // Web terminal
+            {"libttyd.so", "ttyd"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -429,7 +431,10 @@ final class TermuxInstaller {
             "libtermux-exec-ld-preload.so",
             "libtermux-exec_nos_c_tre.so",
             "libtermux-exec-linker-ld-preload.so",
-            "libtermux-exec-direct-ld-preload.so"
+            "libtermux-exec-direct-ld-preload.so",
+            // Web terminal support
+            "libwebsockets.so",
+            "libwebsockets-evlib_uv.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
