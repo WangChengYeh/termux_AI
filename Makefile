@@ -23,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package sop-check github-release github-release-notes github-auth-check github-tag-version
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package sop-check sop-check-all github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -65,6 +65,7 @@ help:
 	@echo "  sop-test        - Interactive command testing in live app"
 	@echo "  sop-user-test   - Automated UI testing via ADB input, creates sop-test-latest.log"
 	@echo "  sop-check       - Compare package files between host and device"
+	@echo "  sop-check-all   - Check all packages (auto-extracts .deb files if needed)"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -776,6 +777,151 @@ sop-check:
 	fi; \
 	echo ""; \
 	echo "============================================================================"
+
+sop-check-all:
+	@echo "🔍 SOP Checker: Checking all packages (auto-extracting if needed)"
+	@echo "================================================================"
+	@echo ""
+	@# Find all .deb packages first
+	@ALL_DEB_PACKAGES=$$(find $(PACKAGES_DIR) -maxdepth 1 -name "*.deb" -type f 2>/dev/null | while read deb; do \
+		basename "$$deb" | sed 's/_.*\.deb$$//' | sed 's/-[0-9].*//'; \
+	done | sort -u); \
+	if [ -z "$$ALL_DEB_PACKAGES" ]; then \
+		echo "❌ No .deb packages found in $(PACKAGES_DIR)/"; \
+		echo "Download packages first using: make sop-download PACKAGE_NAME=<name> VERSION=<version>"; \
+		exit 1; \
+	fi; \
+	echo "📦 Found .deb packages for:"; \
+	echo "$$ALL_DEB_PACKAGES" | while read pkg; do \
+		DEB_FILE=$$(find $(PACKAGES_DIR) -name "$$pkg*.deb" | head -1); \
+		if [ -n "$$DEB_FILE" ]; then \
+			VERSION=$$(basename "$$DEB_FILE" | sed "s/^$$pkg_//" | sed 's/_aarch64\.deb$$//' | sed 's/_all\.deb$$//'); \
+			echo "  - $$pkg ($$VERSION)"; \
+		fi; \
+	done; \
+	echo ""; \
+	PACKAGES_TO_CHECK=""; \
+	echo "🔧 Checking extraction status and auto-extracting..."; \
+	echo "$$ALL_DEB_PACKAGES" | while read PACKAGE; do \
+		if [ -n "$$PACKAGE" ]; then \
+			EXTRACT_DIR="$(PACKAGES_DIR)/$$PACKAGE-complete"; \
+			if [ ! -d "$$EXTRACT_DIR" ]; then \
+				echo "  📦 Extracting $$PACKAGE..."; \
+				DEB_FILE=$$(find $(PACKAGES_DIR) -name "$$PACKAGE*.deb" | head -1); \
+				if [ -n "$$DEB_FILE" ]; then \
+					rm -rf "$$EXTRACT_DIR"; \
+					mkdir -p "$$EXTRACT_DIR"; \
+					dpkg-deb --control "$$DEB_FILE" "$$EXTRACT_DIR/control" 2>/dev/null; \
+					dpkg-deb --extract "$$DEB_FILE" "$$EXTRACT_DIR/data" 2>/dev/null; \
+					if [ -d "$$EXTRACT_DIR/data" ]; then \
+						echo "    ✅ Extracted $$PACKAGE"; \
+					else \
+						echo "    ❌ Failed to extract $$PACKAGE"; \
+						continue; \
+					fi; \
+				else \
+					echo "    ❌ No .deb file found for $$PACKAGE"; \
+					continue; \
+				fi; \
+			else \
+				echo "  ✅ Already extracted: $$PACKAGE"; \
+			fi; \
+			echo "$$PACKAGE" >> /tmp/packages_to_check; \
+		fi; \
+	done; \
+	PACKAGES_TO_CHECK=$$(cat /tmp/packages_to_check 2>/dev/null || echo ""); \
+	rm -f /tmp/packages_to_check; \
+	if [ -z "$$PACKAGES_TO_CHECK" ]; then \
+		echo "❌ No packages available for checking"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "🔌 Testing device connection..."; \
+	if ! adb shell run-as $(APP_ID) echo "Connected" >/dev/null 2>&1; then \
+		echo "❌ Cannot connect to device or app not installed"; \
+		echo "Ensure Termux AI is installed and run: make install run"; \
+		exit 1; \
+	fi; \
+	echo "✅ Device connected, app accessible"; \
+	echo ""; \
+	echo "📊 Batch Package Check Results"; \
+	echo "=============================="; \
+	echo ""; \
+	TOTAL_PACKAGES=0; \
+	PASSED_PACKAGES=0; \
+	FAILED_PACKAGES=0; \
+	echo "$$PACKAGES_TO_CHECK" | while read PACKAGE; do \
+		if [ -n "$$PACKAGE" ]; then \
+			echo "🔍 Checking $$PACKAGE..."; \
+			EXTRACT_DIR="$(PACKAGES_DIR)/$$PACKAGE-complete"; \
+			HOST_BINS=$$(find "$$EXTRACT_DIR/data" \( -type f -o -type l \) -path "*/usr/bin/*" 2>/dev/null); \
+			HOST_LIBS=$$(find "$$EXTRACT_DIR/data" \( -type f -o -type l \) -path "*/usr/lib/*" -name "*.so*" 2>/dev/null); \
+			TOTAL_FILES=0; \
+			MISSING_FILES=0; \
+			if [ -n "$$HOST_BINS" ]; then \
+				BIN_COUNT=$$(echo "$$HOST_BINS" | wc -l | tr -d ' '); \
+				TOTAL_FILES=$$((TOTAL_FILES + BIN_COUNT)); \
+				echo "$$HOST_BINS" | while read -r file; do \
+					filename=$$(basename "$$file"); \
+					DEVICE_BIN="/data/data/$(APP_ID)/files/usr/bin/$$filename"; \
+					if ! adb shell run-as $(APP_ID) test -f "$$DEVICE_BIN" 2>/dev/null; then \
+						echo "$$filename" >> /tmp/missing_bins_$$PACKAGE; \
+					fi; \
+				done; \
+				if [ -f "/tmp/missing_bins_$$PACKAGE" ]; then \
+					MISSING_BINS=$$(cat /tmp/missing_bins_$$PACKAGE | wc -l | tr -d ' '); \
+					MISSING_FILES=$$((MISSING_FILES + MISSING_BINS)); \
+					rm -f /tmp/missing_bins_$$PACKAGE; \
+				fi; \
+			fi; \
+			if [ -n "$$HOST_LIBS" ]; then \
+				LIB_COUNT=$$(echo "$$HOST_LIBS" | wc -l | tr -d ' '); \
+				TOTAL_FILES=$$((TOTAL_FILES + LIB_COUNT)); \
+				echo "$$HOST_LIBS" | while read -r file; do \
+					filename=$$(basename "$$file"); \
+					DEVICE_LIB="/data/data/$(APP_ID)/files/usr/lib/$$filename"; \
+					if ! adb shell run-as $(APP_ID) test -f "$$DEVICE_LIB" 2>/dev/null; then \
+						echo "$$filename" >> /tmp/missing_libs_$$PACKAGE; \
+					fi; \
+				done; \
+				if [ -f "/tmp/missing_libs_$$PACKAGE" ]; then \
+					MISSING_LIBS=$$(cat /tmp/missing_libs_$$PACKAGE | wc -l | tr -d ' '); \
+					MISSING_FILES=$$((MISSING_FILES + MISSING_LIBS)); \
+					rm -f /tmp/missing_libs_$$PACKAGE; \
+				fi; \
+			fi; \
+			PRESENT_FILES=$$((TOTAL_FILES - MISSING_FILES)); \
+			if [ $$TOTAL_FILES -eq 0 ]; then \
+				echo "  📄 No files found - SKIPPED"; \
+			elif [ $$MISSING_FILES -eq 0 ]; then \
+				echo "  ✅ PASSED: All $$TOTAL_FILES files present"; \
+				echo "1" >> /tmp/passed_packages; \
+			else \
+				echo "  ❌ FAILED: $$PRESENT_FILES/$$TOTAL_FILES files present ($$MISSING_FILES missing)"; \
+				echo "1" >> /tmp/failed_packages; \
+			fi; \
+			echo "1" >> /tmp/total_packages; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📈 Final Summary"; \
+	echo "================"; \
+	TOTAL_COUNT=$$(cat /tmp/total_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	PASSED_COUNT=$$(cat /tmp/passed_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	FAILED_COUNT=$$(cat /tmp/failed_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	rm -f /tmp/total_packages /tmp/passed_packages /tmp/failed_packages; \
+	echo "📊 Packages checked: $$TOTAL_COUNT"; \
+	echo "✅ Passed: $$PASSED_COUNT"; \
+	echo "❌ Failed: $$FAILED_COUNT"; \
+	if [ $$FAILED_COUNT -gt 0 ]; then \
+		echo ""; \
+		echo "💡 For detailed analysis of failed packages, run:"; \
+		echo "   make sop-check PACKAGE_NAME=<failed-package-name>"; \
+		exit 1; \
+	else \
+		echo ""; \
+		echo "🎉 All extracted packages are properly integrated!"; \
+	fi
 
 # Find which package contains a library
 sop-find-lib:
