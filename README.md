@@ -13,8 +13,11 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 ✅ **SELinux compatible** - Uses Android's native library mechanism  
 ✅ **Faster startup** - No extraction or installation delays
 
-![Termux AI in action](termux_ai_screenshot.png)
+![Termux AI in action](termux_screenshot.png)
 *Termux AI running with Node.js v24.7.0 and AI assistance*
+
+![ttyd Web Terminal](ttyd_screenshot.png)
+*ttyd web terminal interface accessible at localhost:7681*
 
 ## 🎉 Latest Release: v1.8.0 - Clean Executable Naming Convention
 
