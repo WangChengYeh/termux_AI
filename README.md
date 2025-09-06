@@ -1,6 +1,10 @@
-# Termux AI: Bootstrap-Free Terminal with Native AI Integration
+# Termux AI: Bootstrap-Free Terminal with Multi-AI Integration
 
-A revolutionary fork of `termux/termux-app` that **eliminates traditional package bootstrapping** entirely. Instead of complex zip extraction and package installation, Termux AI embeds native executables directly into the Android APK as `.so` files, leveraging Android's automatic library extraction for instant availability.
+A revolutionary fork of `termux/termux-app` that **eliminates traditional package bootstrapping** entirely and includes **comprehensive AI development tools**. Instead of complex zip extraction and package installation, Termux AI embeds native executables directly into the Android APK as `.so` files, leveraging Android's automatic library extraction for instant availability.
+
+🤖 **Multi-AI Support**: Gemini CLI, Claude CLI, and Codex CLI built-in  
+🎬 **FFmpeg Integration**: Complete multimedia processing capabilities  
+⚡ **Instant Development**: Node.js, Git, and 400+ tools ready immediately
 
 ## 🎯 Key Innovation
 
@@ -9,6 +13,8 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 **Termux AI**: Native executables (binaries + scripts) → Add `.so` extension → Place in `jniLibs/arm64-v8a/` → Android automatically extracts to read-only `/data/app/.../lib/arm64/` → Symbolic links provide instant access.
 
 ✅ **No bootstrap required** - Launch and code immediately  
+✅ **Multi-AI powered** - 3 AI assistants built-in (Gemini, Claude, Codex)  
+✅ **Multimedia ready** - FFmpeg for video/audio processing  
 ✅ **W^X compliant** - Executables in read-only system locations  
 ✅ **SELinux compatible** - Uses Android's native library mechanism  
 ✅ **Faster startup** - No extraction or installation delays
@@ -26,12 +32,15 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 
 **[Download v1.8.0](https://github.com/WangChengYeh/termux_AI/releases/tag/v1.8.0)** | **Size**: 262.5 MB | **SHA256**: `1bafcb40111f43e6b9043bfddb6ff28aae47ac669cdc823ea2fdafdc15501eac`
 
-### What's New in v1.8.0
+### What's New in v1.8.0+
+- ✅ **Complete AI Integration** - Gemini CLI, Claude CLI, and Codex CLI ready-to-use
+- ✅ **FFmpeg Multimedia Support** - Video/audio processing with ffmpeg and ffprobe
 - ✅ **100% Package Integration Success** - All 89 packages fully integrated
 - ✅ **Clean Naming Convention** - Removed `lib` prefix from 100+ executables
+- ✅ **Fixed Android Asset Packaging** - Resolved `__generated__` directory exclusion
+- ✅ **Enhanced Security** - Removed OAuth secrets from repository history
 - ✅ **Improved Consistency** - Executables use `.so` suffix without `lib` prefix (e.g., `apt.so`, `dpkg.so`, `git.so`)
 - ✅ **Fixed Multicall Binaries** - `coreutils.so` properly handles 100+ commands (ls, cat, cp, mv, etc.)
-- ✅ **Enhanced Compatibility** - Maintained library dependencies while cleaning executable names
 
 ## 🚀 Quick Start
 
@@ -48,12 +57,23 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 
 ### Immediate Usage
 ```bash
+# 🤖 AI Development Tools
+gemini --help          # Google Gemini AI CLI v0.3.3
+claude --help          # Anthropic Claude AI CLI
+codex --help           # AI coding assistant
+codex-exec --help      # Non-interactive AI execution
+
+# 🎬 Multimedia Processing
+ffmpeg -version        # FFmpeg v4.2.1 multimedia framework
+ffprobe -version       # Media file analyzer
+
+# 💻 Core Development Stack
 node --version         # Node.js v24.7.0
 npm --version          # Package manager v11.5.1
 git --version          # Version control v2.51.0
 gh --version           # GitHub CLI v2.78.0
-gemini --help          # Google Gemini AI CLI
-codex --help           # AI CLI assistance
+
+# 📦 System Management
 apt --version          # Package management v2.8.1
 curl --version         # Data transfer tool v8.15.0
 ls /usr/bin            # 400+ available commands
@@ -110,14 +130,19 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 | **Vim** | v9.1.1700 | Advanced text editor |
 | **Bash** | v5.3.3-1 | GNU Bourne Again Shell |
 
-### AI & Automation
+### 🤖 AI & Automation (Triple AI Power)
 
-| Component | Version | Description |
-|-----------|---------|-------------|
-| **Gemini CLI** | v0.3.3 | Google's Gemini AI CLI tool for conversational AI |
-| **Claude CLI** | Latest | Anthropic's Claude AI CLI for code assistance |
-| **Codex CLI** | v0.25.0 | AI-powered CLI assistant |
-| **Codex-Exec** | v0.25.0 | Non-interactive AI command execution |
+| Component | Version | Description | Use Case |
+|-----------|---------|-------------|----------|
+| **Gemini CLI** | v0.3.3 | Google's Gemini AI with multimodal capabilities | `gemini "explain this code"` |
+| **Claude CLI** | Latest | Anthropic's Claude AI for advanced reasoning | `claude "help with this function"` |
+| **Codex CLI** | v0.25.0 | AI-powered coding assistant | `codex "write a REST API"` |
+| **Codex-Exec** | v0.25.0 | Non-interactive AI command execution | `codex-exec "fix this bug"` |
+
+**Why Three AI Tools?**
+- 🧠 **Different strengths** - Each AI excels in different areas
+- 🔄 **Fallback options** - If one is unavailable, others continue working  
+- 🎯 **Specialized tasks** - Choose the best AI for your specific needs
 
 ### Package Management
 
@@ -138,12 +163,18 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 | **CA Certificates** | 2025.08.12 | Mozilla CA certificate bundle (146 certs) |
 | **Less** | v679-2 | Terminal pager for viewing text files |
 
-### Multimedia Tools
+### 🎬 Multimedia Tools (FFmpeg Complete)
 
-| Component | Version | Description |
-|-----------|---------|-------------|
-| **FFmpeg** | v4.2.1-3 | Complete multimedia framework for encoding, decoding, streaming |
-| **FFprobe** | v4.2.1-3 | Multimedia stream analyzer and metadata extractor |
+| Component | Version | Description | Capabilities |
+|-----------|---------|-------------|--------------|
+| **FFmpeg** | v4.2.1-3 | Complete multimedia framework | Encode, decode, transcode, stream, filter |
+| **FFprobe** | v4.2.1-3 | Multimedia stream analyzer | Extract metadata, analyze formats, inspect streams |
+
+**FFmpeg Power on Android:**
+- 🎥 **Video Processing** - Convert, compress, edit video files
+- 🎵 **Audio Manipulation** - Extract, convert, enhance audio streams  
+- 📱 **Mobile Optimized** - ARM64-native for optimal Android performance
+- 🔧 **Professional Grade** - Same tool used by YouTube, Netflix, and major platforms
 
 ### System Libraries
 
@@ -548,13 +579,15 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 
 ## 📝 Command Reference
 
-### 🤖 AI-Powered Development
-| Command | Purpose | Example |
-|---------|---------|----------|
-| **`codex`** | Interactive AI coding assistant | `codex "write a REST API"` |
-| **`codex-exec`** | Non-interactive AI execution | `codex-exec "fix this bug"` |
-| **`gemini`** | Google Gemini AI CLI | `gemini "explain this code"` |
-| **`claude`** | Anthropic Claude AI CLI | `claude "help with this function"` |
+### 🤖 AI-Powered Development (Triple AI Support)
+| Command | AI Provider | Purpose | Example |
+|---------|-------------|---------|---------|
+| **`gemini`** | Google | Multimodal AI with vision capabilities | `gemini "explain this code"` |
+| **`claude`** | Anthropic | Advanced reasoning and code analysis | `claude "help with this function"` |
+| **`codex`** | AI Assistant | Interactive coding companion | `codex "write a REST API"` |
+| **`codex-exec`** | AI Assistant | Non-interactive command execution | `codex-exec "fix this bug"` |
+
+💡 **Pro Tip**: Try different AIs for the same task to get varied perspectives and solutions!
 
 ### 💻 Core Development Stack
 | Tool | Version | Description |
@@ -566,8 +599,12 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 | **`gh`** | v2.78.0 | GitHub CLI |
 | **`vim`** | v9.1.1700 | Text editor |
 | **`bash`** | v5.3.3 | Shell environment |
-| **`ffmpeg`** | v4.2.1 | Video/audio processing |
-| **`ffprobe`** | v4.2.1 | Media file analyzer |
+
+### 🎬 Multimedia Processing
+| Tool | Version | Description | Common Use Cases |
+|------|---------|-------------|------------------|
+| **`ffmpeg`** | v4.2.1 | Complete multimedia framework | `ffmpeg -i input.mp4 output.avi` |
+| **`ffprobe`** | v4.2.1 | Media file analyzer | `ffprobe -v quiet -show_format video.mp4` |
 
 ### 📦 Package & System Management
 | Category | Commands | Count |
@@ -578,6 +615,50 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 | **Development** | `make`, `gcc`, `python` (via APT) | Unlimited |
 
 💡 **Quick test**: Run `ls /usr/bin | wc -l` to see total available commands (296+)
+
+## 🚀 Practical Examples
+
+### AI Development Assistance
+```bash
+# Get help with complex code
+gemini "Explain this Python function: def fibonacci(n): return n if n <= 1 else fibonacci(n-1) + fibonacci(n-2)"
+
+# Code review and optimization
+claude "Review this JavaScript code for potential security issues: const user = eval(input)"
+
+# Generate boilerplate code
+codex "Create a Node.js Express server with authentication middleware"
+
+# Debug and fix issues
+codex-exec "Fix the syntax error in my Python script"
+```
+
+### Multimedia Processing with FFmpeg
+```bash
+# Convert video formats
+ffmpeg -i input.mp4 -c:v libx264 -c:a aac output.mp4
+
+# Extract audio from video
+ffmpeg -i video.mp4 -vn -acodec copy audio.m4a
+
+# Resize video for mobile
+ffmpeg -i input.mp4 -vf scale=720:480 -c:a copy mobile.mp4
+
+# Get video information
+ffprobe -v quiet -print_format json -show_format -show_streams video.mp4
+```
+
+### Combining AI + Development + Multimedia
+```bash
+# Use AI to generate FFmpeg commands
+claude "Generate an FFmpeg command to compress a 4K video to 1080p with good quality"
+
+# Get coding help for multimedia projects
+gemini "Write a Node.js script that uses child_process to run FFmpeg commands"
+
+# Debug multimedia issues
+codex "Why is my FFmpeg command producing corrupted audio output?"
+```
 
 ## 🧪 Testing & Verification
 
