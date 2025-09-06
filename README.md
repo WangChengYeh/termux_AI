@@ -114,7 +114,7 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 
 | Component | Version | Description |
 |-----------|---------|-------------|
-| **Gemini CLI** | Latest | Google's Gemini AI CLI tool for conversational AI |
+| **Gemini CLI** | v0.3.3 | Google's Gemini AI CLI tool for conversational AI |
 | **Codex CLI** | v0.25.0 | AI-powered CLI assistant |
 | **Codex-Exec** | v0.25.0 | Non-interactive AI command execution |
 
@@ -136,6 +136,13 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 | **DNS Utils** | v9.20.12 | BIND DNS tools (dig, nslookup, host) |
 | **CA Certificates** | 2025.08.12 | Mozilla CA certificate bundle (146 certs) |
 | **Less** | v679-2 | Terminal pager for viewing text files |
+
+### Multimedia Tools
+
+| Component | Version | Description |
+|-----------|---------|-------------|
+| **FFmpeg** | v4.2.1-3 | Complete multimedia framework for encoding, decoding, streaming |
+| **FFprobe** | v4.2.1-3 | Multimedia stream analyzer and metadata extractor |
 
 ### System Libraries
 
@@ -545,6 +552,7 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 |---------|---------|----------|
 | **`codex`** | Interactive AI coding assistant | `codex "write a REST API"` |
 | **`codex-exec`** | Non-interactive AI execution | `codex-exec "fix this bug"` |
+| **`gemini`** | Google Gemini AI CLI | `gemini "explain this code"` |
 
 ### 💻 Core Development Stack
 | Tool | Version | Description |
@@ -556,6 +564,8 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 | **`gh`** | v2.78.0 | GitHub CLI |
 | **`vim`** | v9.1.1700 | Text editor |
 | **`bash`** | v5.3.3 | Shell environment |
+| **`ffmpeg`** | v4.2.1 | Video/audio processing |
+| **`ffprobe`** | v4.2.1 | Media file analyzer |
 
 ### 📦 Package & System Management
 | Category | Commands | Count |

@@ -378,7 +378,10 @@ final class TermuxInstaller {
             // Compression utilities
             {"zstd.so", "zstd"},
             // AI CLI tools
-            {"gemini.so", "gemini"}
+            {"gemini.so", "gemini"},
+            // FFmpeg multimedia tools
+            {"ffmpeg.so", "ffmpeg"},
+            {"ffprobe.so", "ffprobe"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -471,7 +474,16 @@ final class TermuxInstaller {
             "libuv.so",
             "libxml2-16.so",
             "libkrad0.so",
-            "libisccfg.so"
+            "libisccfg.so",
+            // FFmpeg libraries
+            "libavutil.so",
+            "libavfilter.so",
+            "libpostproc.so",
+            "libswscale.so",
+            "libswresample.so",
+            "libavdevice.so",
+            "libavcodec.so",
+            "libavformat.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib

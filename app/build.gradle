@@ -148,6 +148,8 @@ android {
 
     aaptOptions {
         noCompress 'tar', 'gz', 'zip'
+        // Include __generated__ directories that are normally ignored by AAPT
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
 
     applicationVariants.all { variant ->
