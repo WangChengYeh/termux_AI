@@ -16,6 +16,17 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 ![Termux AI in action](termux_ai_screenshot.png)
 *Termux AI running with Node.js v24.7.0 and AI assistance*
 
+## 🎉 Latest Release: v1.8.0 - Clean Executable Naming Convention
+
+**[Download v1.8.0](https://github.com/WangChengYeh/termux_AI/releases/tag/v1.8.0)** | **Size**: 262.5 MB | **SHA256**: `1bafcb40111f43e6b9043bfddb6ff28aae47ac669cdc823ea2fdafdc15501eac`
+
+### What's New in v1.8.0
+- ✅ **100% Package Integration Success** - All 89 packages fully integrated
+- ✅ **Clean Naming Convention** - Removed `lib` prefix from 100+ executables
+- ✅ **Improved Consistency** - Executables use `.so` suffix without `lib` prefix (e.g., `apt.so`, `dpkg.so`, `git.so`)
+- ✅ **Fixed Multicall Binaries** - `coreutils.so` properly handles 100+ commands (ls, cat, cp, mv, etc.)
+- ✅ **Enhanced Compatibility** - Maintained library dependencies while cleaning executable names
+
 ## 🚀 Quick Start
 
 ### Requirements
@@ -24,7 +35,7 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 - **Storage**: ~74MB APK with complete Node.js ecosystem
 
 ### Installation
-1. Download APK from [Releases](../../releases)
+1. Download APK from [Releases](../../releases) - **Latest: v1.8.0** (Clean Executable Naming)
 2. Install on ARM64 Android device  
 3. Launch app - all executables configured automatically
 4. Ready for development and AI assistance
@@ -209,7 +220,7 @@ make sop-build                        # 🛠️ Build & test APK
 **What happens under the hood:**
 1. **Download** `.deb` from Termux repository
 2. **Extract** using `dpkg-deb` to analyze contents
-3. **Transform** binaries: `usr/bin/node` → `jniLibs/arm64-v8a/libnode.so`
+3. **Transform** binaries: `usr/bin/node` → `jniLibs/arm64-v8a/node.so` (No `lib` prefix needed for executables)
 4. **Update** `TermuxInstaller.java` with new executable mappings
 5. **Build** APK with integrated native executables
 
@@ -263,8 +274,8 @@ dpkg-deb -x packages/git_2.51.0_aarch64.deb packages/git-extract
 
 # 3. The key transformation: Binary → Fake shared library
 cp packages/git-extract/data/data/com.termux/files/usr/bin/git \
-   app/src/main/jniLibs/arm64-v8a/libgit.so
-#   ^^^^^ ARM64 binary becomes libgit.so ^^^^^
+   app/src/main/jniLibs/arm64-v8a/git.so
+#   ^^^^^ ARM64 binary becomes git.so (no lib prefix for executables) ^^^^^
 
 # 4. Handle missing dependencies (discovered at runtime)
 # App crash: "library libcharset.so not found"
@@ -282,7 +293,7 @@ cp packages/libiconv-extract/.../libiconv.so.2 app/src/main/jniLibs/arm64-v8a/li
 
 # 7. Update Java integration code
 # In TermuxInstaller.java:
-# executables array: {"libgit.so", "git"}
+# executables array: {"git.so", "git"}
 # baseLibraries array: "libcharset.so", "libiconv.so"
 
 # 8. Build, install, and test
@@ -291,8 +302,8 @@ make build && make install && make run
 ```
 
 **What just happened?**
-- Git binary (ARM64 ELF) → Renamed to `libgit.so` → Android treats it as a shared library
-- Android automatically extracts to `/data/app/.../lib/arm64/libgit.so` with executable permissions
+- Git binary (ARM64 ELF) → Renamed to `git.so` → Android treats it as a shared library
+- Android automatically extracts to `/data/app/.../lib/arm64/git.so` with executable permissions
 - Symbolic link `/usr/bin/git` → Points to the extracted location
 - Dependencies resolved the same way → No complex package management needed
 
@@ -347,8 +358,8 @@ termux_AI/
 │
 ├── app/src/main/
 │   ├── jniLibs/arm64-v8a/                 # ⚙️ THE MAGIC DIRECTORY
-│   │   ├── libnode.so                     # Node.js binary (24MB)
-│   │   ├── libgit.so                      # Git binary (2.1MB)
+│   │   ├── node.so                        # Node.js binary (24MB)
+│   │   ├── git.so                         # Git binary (2.1MB)
 │   │   ├── libssl3.so                     # OpenSSL library
 │   │   └── libcurl.so                     # cURL library
 │   │
