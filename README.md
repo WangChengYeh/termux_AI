@@ -19,6 +19,9 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 ![ttyd Web Terminal](ttyd_screenshot.png)
 *ttyd web terminal interface accessible at localhost:7681*
 
+![Gemini AI CLI](gemini_screenshot.png)
+*Gemini AI CLI authentication setup with Google login and API key options*
+
 ## 🎉 Latest Release: v1.8.0 - Clean Executable Naming Convention
 
 **[Download v1.8.0](https://github.com/WangChengYeh/termux_AI/releases/tag/v1.8.0)** | **Size**: 262.5 MB | **SHA256**: `1bafcb40111f43e6b9043bfddb6ff28aae47ac669cdc823ea2fdafdc15501eac`
