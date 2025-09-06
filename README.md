@@ -32,7 +32,7 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 ### Requirements
 - **Android**: 14+ (API level 34+)
 - **Architecture**: ARM64 (`arm64-v8a`) devices only
-- **Storage**: ~74MB APK with complete Node.js ecosystem
+- **Storage**: ~262MB APK with complete development environment
 
 ### Installation
 1. Download APK from [Releases](../../releases) - **Latest: v1.8.0** (Clean Executable Naming)
@@ -49,15 +49,20 @@ gh --version           # GitHub CLI v2.78.0
 codex --help           # AI CLI assistance
 apt --version          # Package management v2.8.1
 curl --version         # Data transfer tool v8.15.0
-ls /usr/bin            # 296+ available commands
+ls /usr/bin            # 400+ available commands
 ```
 
 ## 🏗 Architecture Overview
 
 ### Bootstrap-Free Design
-- **Traditional Termux**: Complex zip extraction and package installation
-- **Termux AI**: Native executable verification and symbolic link creation
-- **Benefits**: Faster startup, better security, W^X compliance
+
+| Aspect | Traditional Termux | Termux AI |
+|--------|-------------------|-----------|
+| **Setup** | Complex zip extraction & package installation | Instant - executables pre-integrated |
+| **First Launch** | 5-10 minutes bootstrap | < 5 seconds ready |
+| **Package Management** | Download → Extract → Install → Configure | Already integrated in APK |
+| **Security** | Writable directories, permission issues | W^X compliant, read-only executables |
+| **Storage Location** | `/data/data/com.termux/files/usr/` | `/data/app/.../lib/arm64/` (system) |
 
 ### Revolutionary Executable Integration
 
@@ -215,6 +220,10 @@ make sop-analyze PACKAGE_NAME=nodejs  # 🔍 Identify executables & deps
 make sop-copy PACKAGE_NAME=nodejs     # ➡️ Transform to .so files
 make sop-update PACKAGE_NAME=nodejs   # 📝 Update Java integration
 make sop-build                        # 🛠️ Build & test APK
+
+# 🧪 Package verification commands
+make sop-check PACKAGE_NAME=nodejs    # ✅ Verify single package integration
+make sop-check-all                    # 📊 Test all 89 packages (100% success)
 ```
 
 **What happens under the hood:**
@@ -259,6 +268,68 @@ make build && make install && make run
 ```
 
 💡 **Pro tip**: The `Contents-aarch64` file maps every file to its source package, making dependency resolution straightforward.
+
+### 🧪 Package Integration Verification (SOP Check)
+
+The **SOP Check** system ensures every integrated package works correctly on the Android device:
+
+```bash
+# Check a specific package integration
+make sop-check PACKAGE_NAME=nodejs
+```
+
+**What it verifies:**
+- 📦 **Host Analysis**: Identifies all executables, libraries, and scripts from the package
+- 📱 **Device Verification**: Confirms each file exists and is accessible on device
+- 🔧 **Functional Testing**: Executes commands to verify they run without errors
+- 📊 **Dependency Resolution**: Checks all required libraries are present
+
+**Example output for successful package:**
+```
+🔍 SOP Checker: Comparing nodejs files between host and device
+============================================================================
+📦 Host Package Analysis
+🔧 Executables in /usr/bin:
+  📄 node (NATIVE) - Expected in /usr/bin/ via jniLibs
+  📜 npm (SCRIPT) - Expected in /usr/bin/ via assets
+  📜 npx (SCRIPT) - Expected in /usr/bin/ via assets
+
+📱 Device Verification
+✅ node - EXISTS (symlink → /data/app/.../lib/arm64/node.so)
+✅ npm - EXISTS (symlink → /data/data/com.termux/files/usr/lib/node_modules/npm/bin/npm-cli.js)
+
+🧪 Functional Testing
+✅ node --version: v24.7.0
+✅ npm --version: 11.5.1
+
+📊 Summary
+✅ All 3 files from nodejs are present and accessible
+```
+
+### 📊 Comprehensive Package Testing
+
+Test all 89 integrated packages at once:
+
+```bash
+make sop-check-all
+```
+
+**Features:**
+- 🔄 **Auto-extraction**: Downloads and extracts any missing packages
+- 📊 **Progress tracking**: Shows real-time status for each package
+- 📈 **Summary report**: Final statistics with pass/fail counts
+- 🎯 **100% Success rate**: v1.8.0 achieves complete package integration
+
+**Example summary:**
+```
+📈 Final Summary
+================
+📊 Packages checked: 89
+✅ Passed: 89
+❌ Failed: 0
+
+🎉 All extracted packages are properly integrated!
+```
 
 #### Complete Example: Adding Git v2.51.0
 
@@ -309,27 +380,26 @@ make build && make install && make run
 
 ### 🛠️ Build & Deploy Workflow
 
-**💻 Development Cycle**
-```bash
-make doctor          # 🩺 Health check: SDK, NDK, device connection
-make build           # 📱 Build debug APK with current changes
-make install         # 📦 Install APK + grant permissions automatically
-make run            # 🚀 Launch Termux AI and open terminal
-make logs           # 📜 Monitor app behavior in real-time
-```
+#### Quick Command Reference
 
-**🏁 Production Release**
-```bash
-BUILD_TYPE=release make build     # ⚙️ Optimized APK with R8/ProGuard
-make github-release              # 🚀 Tag, build, upload to GitHub releases
-```
-
-**🧪 Testing & Verification**
-```bash
-make sop-user-test              # 🤖 Automated UI testing via ADB
-make sop-test                   # 👥 Interactive command verification
-adb shell run-as com.termux     # 🔌 Direct shell access for debugging
-```
+| Category | Command | Description |
+|----------|---------|-------------|
+| **Development** | `make build` | Build debug APK |
+| | `make install` | Install APK with permissions |
+| | `make run` | Launch Termux AI |
+| | `make logs` | Monitor app logs |
+| **Testing** | `make sop-check PACKAGE_NAME=git` | Verify single package |
+| | `make sop-check-all` | Test all 89 packages |
+| | `make sop-user-test` | Automated UI testing |
+| | `make sop-test` | Interactive testing |
+| **Package Management** | `make sop-add-package PACKAGE_NAME=vim VERSION=9.1.1700` | Add new package |
+| | `make sop-list LETTER=v` | Browse packages |
+| | `make sop-analyze PACKAGE_NAME=vim` | Analyze dependencies |
+| **Production** | `BUILD_TYPE=release make build` | Build release APK |
+| | `make github-release` | Create GitHub release |
+| **Diagnostics** | `make doctor` | Check development environment |
+| | `make check-jnilibs` | Verify .so files |
+| | `make check-duplicates` | Find conflicts |
 
 ### File Naming & Integration Rules
 
@@ -509,7 +579,7 @@ git init && git status  # 📁 Version control works
 |------------|--------|------------|
 | **ARM64 only** | Termux packages are architecture-specific | Use ARM64 Android device (most modern phones) |
 | **Android 14+** | Foreground service permissions | Update Android or use older Termux version |
-| **Package subset** | APK size constraints (74MB current) | Use `apt install` for additional packages |
+| **Package subset** | APK size constraints (262MB current) | Core development tools included |
 | **Single architecture** | APK optimization for size | Future: Multi-architecture support |
 
 **What's Included vs. What's Not:**
@@ -525,27 +595,27 @@ git init && git status  # 📁 Version control works
 | Feature | Traditional Termux | Termux AI |
 |---------|-------------------|----------|
 | **First Launch** | 5-10 min bootstrap | ⚡ Instant (0 seconds) |
-| **App Size** | ~8MB + 500MB download | 📍 74MB complete |
+| **App Size** | ~8MB + 500MB download | 📍 262MB complete |
 | **Installation** | Multi-step, fragile | 👍 One APK install |
 | **Security** | Writable executables | 🔒 Read-only W^X compliant |
 | **AI Integration** | Manual setup | 🤖 Built-in Codex CLI |
 | **Package Integration** | Manual, error-prone | 🎯 **100% Success Rate** |
 
 ### 🚀 Production Ready - 100% Package Integration Success!
-- **48 packages** integrated natively with **100% success rate** (up from 64%)
-- **All 16 previously failing packages** now working perfectly
-- **296+ commands** available instantly without bootstrap
-- **500MB** of development tools compressed into 74MB APK
+- **89 packages** integrated natively with **100% success rate**
+- **400+ commands** available instantly without bootstrap
+- **Clean naming convention** - No lib prefix for executables
+- **262MB APK** with complete development environment
 - **Android 14+** compatibility with foreground services
 - **Automated releases** via GitHub Actions
 - **Zero bootstrap** - launch and code immediately
 
-### 🎯 Recent Major Improvements (September 2025)
-- ✅ **Fixed all package integration failures** - Achieved 100% success rate
-- ✅ **Added comprehensive SOP testing system** - Automated verification of all packages
-- ✅ **Enhanced executable mapping** - All missing executables now properly integrated
-- ✅ **Improved library dependency resolution** - All version symlinks working correctly
-- ✅ **Added missing scripts and symlinks** - Complete file integration via assets system
+### 🎯 Recent Major Improvements (v1.8.0 - September 2025)
+- ✅ **Clean Naming Convention** - Removed lib prefix from 100+ executables
+- ✅ **100% Package Integration** - All 89 packages fully working
+- ✅ **Comprehensive SOP Testing** - `make sop-check-all` verifies everything
+- ✅ **Fixed Multicall Binaries** - `coreutils.so` handles 100+ commands correctly
+- ✅ **Enhanced Documentation** - Complete command reference and examples
 
 ## 📖 Additional Resources
 
