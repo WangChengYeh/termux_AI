@@ -514,7 +514,10 @@ final class TermuxInstaller {
             "libharfbuzz-subset.so",
             "libpng16.so",
             "libidn2.so",
-            "libunistring.so"
+            "libunistring.so",
+            "libnettle.so",
+            "libhogweed.so",
+            "libogg.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -618,7 +621,17 @@ final class TermuxInstaller {
             // libsoxr versions
             {"libsoxr.so", "libsoxr.so.0"},
             // libpng versions
-            {"libpng16.so", "libpng.so"}
+            {"libpng16.so", "libpng.so"},
+            // libnettle versions
+            {"libnettle.so", "libnettle.so.7"},
+            {"libnettle.so", "libnettle.so.8"},
+            {"libnettle.so", "libnettle.so.8.11"},
+            // libhogweed versions
+            {"libhogweed.so", "libhogweed.so.5"},
+            {"libhogweed.so", "libhogweed.so.6"},
+            {"libhogweed.so", "libhogweed.so.6.11"},
+            // libogg versions
+            {"libogg.so", "libogg.so.0"}
         };
         
         // Create symlinks for executables in /usr/bin
