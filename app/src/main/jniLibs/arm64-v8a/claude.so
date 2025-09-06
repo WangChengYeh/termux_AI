@@ -1,4 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env bash
-npm install -g @anthropic-ai/claude-code
+mv $0 /data/data/com.termux/files/usr/bin/.claude_orig
+npm install -g @anthropic-ai/claude-code --force
+cp /data/data/com.termux/files/usr/bin/.claude_orig $0
 node /data/data/com.termux/files/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"
 

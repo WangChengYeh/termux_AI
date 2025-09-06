@@ -1,4 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/env bash
-npm install -g @google/gemini-cli
+mv $0 /data/data/com.termux/files/usr/bin/.gemini_orig
+npm install -g @google/gemini-cli --force
+cp /data/data/com.termux/files/usr/bin/.gemini_orig $0
 node /data/data/com.termux/files/usr/lib/node_modules/@google/gemini-cli/dist "$@"
 
