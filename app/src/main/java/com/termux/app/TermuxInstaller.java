@@ -492,7 +492,9 @@ final class TermuxInstaller {
             "libfreetype.so",
             "libiconv.so",
             "libcharset.so",
-            "libandroid-glob.so"
+            "libandroid-glob.so",
+            "libgnutls.so",
+            "libgnutlsxx.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
