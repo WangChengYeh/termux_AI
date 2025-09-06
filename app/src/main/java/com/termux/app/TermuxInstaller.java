@@ -376,7 +376,9 @@ final class TermuxInstaller {
             {"libgpg-error.so", "gpg-error"},
             {"yat2m.so", "yat2m"},
             // Compression utilities
-            {"zstd.so", "zstd"}
+            {"zstd.so", "zstd"},
+            // AI CLI tools
+            {"gemini.so", "gemini"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
