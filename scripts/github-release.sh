@@ -86,8 +86,13 @@ get_next_version() {
         echo "v${major}.${next_minor}"
     else
         log_warning "Cannot parse version '$latest_version', using manual input"
-        read -p "Enter version (e.g., v1.8.0): " version
-        echo "$version"
+        # Use environment variable if available, otherwise default to next patch version
+        if [ -n "$RELEASE_VERSION" ]; then
+            echo "$RELEASE_VERSION"
+        else
+            # Default to incrementing patch version (v1.8.0 -> v1.9.0)
+            echo "v1.9.0"
+        fi
     fi
 }
 
@@ -276,11 +281,16 @@ main() {
     
     # Confirm before proceeding
     if [ "$dry_run" = false ]; then
-        read -p "Proceed with release creation? (y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_warning "Release cancelled by user"
-            exit 0
+        # Skip confirmation if RELEASE_VERSION is set (automated build)
+        if [ -z "$RELEASE_VERSION" ]; then
+            read -p "Proceed with release creation? (y/n): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                log_warning "Release cancelled by user"
+                exit 0
+            fi
+        else
+            log_info "Automated release - skipping confirmation"
         fi
     fi
     
