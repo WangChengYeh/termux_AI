@@ -43,6 +43,3 @@ local.properties
 ehthumbs.db
 Thumbs.db
 
-# AI CLI tools containing secrets
-app/src/main/jniLibs/arm64-v8a/gemini.so
-app/src/main/assets/termux/usr/lib/node_modules/gemini.js
