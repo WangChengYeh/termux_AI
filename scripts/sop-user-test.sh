@@ -240,6 +240,31 @@ run_tests() {
     send_command_with_logging "apt --version" "Typing 'apt --version >> log'" "APT_Version"
     check_log_results "APT_Version"
     
+    # Test 11: FFmpeg multimedia tool
+    log_test "🔍 Test 11: FFmpeg multimedia tool"
+    send_command_with_logging "ffmpeg -version 2>&1 | head -3" "Typing 'ffmpeg -version >> log'" "FFmpeg_Version"
+    check_log_results "FFmpeg_Version"
+    
+    # Test 12: FFprobe media analysis
+    log_test "🔍 Test 12: FFprobe media analysis"
+    send_command_with_logging "ffprobe -version 2>&1 | head -3" "Typing 'ffprobe -version >> log'" "FFprobe_Version"
+    check_log_results "FFprobe_Version"
+    
+    # Test 13: AI CLI tools integration
+    log_test "🔍 Test 13: AI CLI tools integration"
+    send_command_with_logging "which gemini && which claude && which codex" "Typing 'which AI tools >> log'" "AI_CLI_Tools"
+    check_log_results "AI_CLI_Tools"
+    
+    # Test 14: Library dependencies check
+    log_test "🔍 Test 14: Library dependencies check" 
+    send_command_with_logging "ldd \$PREFIX/bin/ffmpeg 2>&1 | grep -i 'not found' || echo 'All libraries found'" "Typing 'ldd ffmpeg | grep not found >> log'" "Library_Dependencies"
+    check_log_results "Library_Dependencies"
+    
+    # Test 15: Multimedia codec libraries
+    log_test "🔍 Test 15: Multimedia codec libraries"
+    send_command_with_logging "ls \$PREFIX/lib | grep -E '(libx264|libx265|libopus|libvorbis|libmp3lame)' | head -5" "Typing 'ls codec libs >> log'" "Codec_Libraries"
+    check_log_results "Codec_Libraries"
+    
     # Show complete log file
     log_test "📄 Complete test log file"
     echo "   Full log contents:"
@@ -295,6 +320,11 @@ show_summary() {
     echo "   ✓ ls -la \$PREFIX/bin/node - Symbolic link verification"
     echo "   ✓ ls \$PREFIX/lib - Library path check"
     echo "   ✓ apt --version - Package management"
+    echo "   ✓ ffmpeg -version - FFmpeg multimedia framework"
+    echo "   ✓ ffprobe -version - FFprobe media analysis"
+    echo "   ✓ which AI tools - AI CLI integration"
+    echo "   ✓ ldd ffmpeg - Library dependency validation"
+    echo "   ✓ ls codec libs - Multimedia codec libraries"
     echo ""
     log_info "📄 Test results captured in: /data/data/$APP_ID/files/home/$LOG_FILE"
     log_info "📱 All commands typed directly into terminal UI with >> redirection"
