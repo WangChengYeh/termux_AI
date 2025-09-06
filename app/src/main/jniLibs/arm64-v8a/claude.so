@@ -1,0 +1,2 @@
+#!/data/data/com.termux/files/usr/bin/env bash
+node /data/data/com.termux/files/usr/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"
