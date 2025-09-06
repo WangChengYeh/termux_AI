@@ -382,7 +382,9 @@ final class TermuxInstaller {
             {"claude.so", "claude"},
             // FFmpeg multimedia tools
             {"ffmpeg.so", "ffmpeg"},
-            {"ffprobe.so", "ffprobe"}
+            {"ffprobe.so", "ffprobe"},
+            // Font rendering tools
+            {"freetype-config.so", "freetype-config"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -486,7 +488,8 @@ final class TermuxInstaller {
             "libavcodec.so",
             "libavformat.so",
             // FFmpeg dependencies
-            "libass.so"
+            "libass.so",
+            "libfreetype.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
