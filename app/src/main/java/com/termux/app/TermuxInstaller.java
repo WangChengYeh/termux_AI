@@ -489,7 +489,10 @@ final class TermuxInstaller {
             "libavformat.so",
             // FFmpeg dependencies
             "libass.so",
-            "libfreetype.so"
+            "libfreetype.so",
+            "libiconv.so",
+            "libcharset.so",
+            "libandroid-glob.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
