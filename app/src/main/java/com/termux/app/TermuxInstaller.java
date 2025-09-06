@@ -494,7 +494,26 @@ final class TermuxInstaller {
             "libcharset.so",
             "libandroid-glob.so",
             "libgnutls.so",
-            "libgnutlsxx.so"
+            "libgnutlsxx.so",
+            "libvpx.so",
+            "libmp3lame.so",
+            "libopus.so",
+            "libvorbis.so",
+            "libvorbisenc.so", 
+            "libvorbisfile.so",
+            "libx264.so",
+            "libx265.so",
+            "libxvidcore.so",
+            "libsoxr.so",
+            "libsoxr-lsr.so",
+            "libfribidi.so",
+            "libfontconfig.so",
+            "libharfbuzz.so",
+            "libharfbuzz-cairo.so",
+            "libharfbuzz-gobject.so",
+            "libharfbuzz-subset.so",
+            "libpng16.so",
+            "libidn2.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -585,7 +604,20 @@ final class TermuxInstaller {
             {"libotp.so", "otp.so"},
             {"libpkinit.so", "pkinit.so"},
             {"libspake.so", "spake.so"},
-            {"libtest.so", "test.so"}
+            {"libtest.so", "test.so"},
+            // libvpx versions
+            {"libvpx.so", "libvpx.so.6"},
+            {"libvpx.so", "libvpx.so.6.1.0"},
+            // libx264 versions
+            {"libx264.so", "libx264.so.164"},
+            {"libx264.so", "libx264.so.155"},
+            // libxvidcore versions
+            {"libxvidcore.so", "libxvidcore.so.4"},
+            {"libxvidcore.so", "libxvidcore.so.4.3"},
+            // libsoxr versions
+            {"libsoxr.so", "libsoxr.so.0"},
+            // libpng versions
+            {"libpng16.so", "libpng.so"}
         };
         
         // Create symlinks for executables in /usr/bin

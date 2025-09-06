@@ -23,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-add-package sop-check sop-check-all github-release github-release-notes github-auth-check github-tag-version
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-ldd-test sop-add-package sop-check sop-check-all github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -64,6 +64,7 @@ help:
 	@echo "  sop-build       - Build and test integration"
 	@echo "  sop-test        - Interactive command testing in live app"
 	@echo "  sop-user-test   - Automated UI testing via ADB input, creates sop-test-latest.log"
+	@echo "  sop-ldd-test    - Test executables with ldd for missing libraries"
 	@echo "  sop-check       - Compare package files between host and device"
 	@echo "  sop-check-all   - Check all packages (auto-extracts .deb files if needed)"
 	@echo ""
@@ -587,6 +588,13 @@ sop-test:
 
 sop-user-test:
 	@APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-user-test.sh
+
+sop-ldd-test:
+	@if [ -n "$(EXECUTABLE)" ]; then \
+		APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-ldd-test.sh "$(EXECUTABLE)"; \
+	else \
+		APP_ID="$(APP_ID)" MAIN_ACTIVITY="$(MAIN_ACTIVITY)" ./scripts/sop-ldd-test.sh; \
+	fi
 
 sop-check:
 	@if [ -z "$(PACKAGE_NAME)" ]; then \
