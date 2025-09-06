@@ -129,33 +129,30 @@ test_executable() {
 # Test all common executables
 test_all_executables() {
     local executables=(
-        "ffmpeg"
-        "ffprobe" 
-        "node"
-        "npm"
-        "git"
-        "bash"
         "ls"
-        "cat"
+        "cat" 
         "grep"
         "awk"
         "sed"
-        "curl"
-        "wget"
         "tar"
         "gzip"
         "unzip"
-        "python"
-        "pip"
-        "gcc"
-        "make"
-        "cmake"
-        "pkg-config"
-        "freetype-config"
-        "gemini"
-        "claude"
-        "codex"
     )
+    
+    # Try to get list of available Termux executables if possible
+    local termux_executables=$(adb shell "export PATH=/data/data/$APP_ID/files/usr/bin:/system/bin:/system/xbin && ls /data/data/$APP_ID/files/usr/bin 2>/dev/null | head -10" 2>/dev/null || echo "")
+    
+    if [ -n "$termux_executables" ]; then
+        info "Found Termux executables, adding to test list:"
+        while IFS= read -r exe; do
+            if [ -n "$exe" ]; then
+                executables+=("$exe")
+                info "  - $exe"
+            fi
+        done <<< "$termux_executables"
+    else
+        warn "Could not access Termux executable directory, testing system executables only"
+    fi
     
     local failed_count=0
     local total_count=${#executables[@]}

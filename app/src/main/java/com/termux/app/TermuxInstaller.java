@@ -513,7 +513,8 @@ final class TermuxInstaller {
             "libharfbuzz-gobject.so",
             "libharfbuzz-subset.so",
             "libpng16.so",
-            "libidn2.so"
+            "libidn2.so",
+            "libunistring.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
