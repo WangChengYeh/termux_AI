@@ -52,6 +52,7 @@ node --version         # Node.js v24.7.0
 npm --version          # Package manager v11.5.1
 git --version          # Version control v2.51.0
 gh --version           # GitHub CLI v2.78.0
+gemini --help          # Google Gemini AI CLI
 codex --help           # AI CLI assistance
 apt --version          # Package management v2.8.1
 curl --version         # Data transfer tool v8.15.0
@@ -113,6 +114,7 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 
 | Component | Version | Description |
 |-----------|---------|-------------|
+| **Gemini CLI** | Latest | Google's Gemini AI CLI tool for conversational AI |
 | **Codex CLI** | v0.25.0 | AI-powered CLI assistant |
 | **Codex-Exec** | v0.25.0 | Non-interactive AI command execution |
 
@@ -626,11 +628,12 @@ git init && git status  # 📁 Version control works
 | **App Size** | ~8MB + 500MB download | 📍 262MB complete |
 | **Installation** | Multi-step, fragile | 👍 One APK install |
 | **Security** | Writable executables | 🔒 Read-only W^X compliant |
-| **AI Integration** | Manual setup | 🤖 Built-in Codex CLI |
+| **AI Integration** | Manual setup | 🤖 Built-in Gemini & Codex CLI |
 | **Package Integration** | Manual, error-prone | 🎯 **100% Success Rate** |
 
 ### 🚀 Production Ready - 100% Package Integration Success!
 - **89 packages** integrated natively with **100% success rate**
+- **Additional AI tools** - Gemini CLI and Codex CLI for enhanced development
 - **400+ commands** available instantly without bootstrap
 - **Clean naming convention** - No lib prefix for executables
 - **262MB APK** with complete development environment
