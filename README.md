@@ -412,15 +412,33 @@ make build && make install && make run
 | File Type | Original | Termux AI Location | Example |
 |-----------|----------|-------------------|----------|
 | **ARM64 Binary** | `node` | `jniLibs/arm64-v8a/node.so` | Node.js runtime |
-| **Script File** | `npm` | `jniLibs/arm64-v8a/npm.so` | Package manager script |
+| **Shell Script** | `npm` | `jniLibs/arm64-v8a/npm.so` | Package manager script |
+| **JavaScript Module** | `gemini.js` | `assets/termux/usr/lib/node_modules/gemini.js` | For require/import |
+| **JavaScript Executable** | `gemini.js` | `jniLibs/arm64-v8a/gemini.so` | CLI command |
 | **Shared Library** | `libssl.so.3` | `jniLibs/arm64-v8a/libssl3.so` | OpenSSL library |
 | **Dependencies** | `node_modules/` | `assets/termux/usr/lib/node_modules/` | NPM ecosystem |
 
 **Key Insights:**
 - ✅ **No `lib` prefix needed** → Executables use simple naming: `node.so`, `git.so`, `npm.so`
-- ✅ **Unified approach** → Both binaries and scripts get `.so` postfix and go in `jniLibs/`
+- ✅ **Executable rule** → All executables (binaries, shell scripts, Node.js scripts) get `.so` postfix and go in `jniLibs/`
+- ✅ **JavaScript modules** → Keep `.js` extension and place in `assets/termux/usr/lib/node_modules/` for imports
 - ✅ **Libraries keep prefix** → System libraries use `lib` prefix: `libssl3.so`, `libcurl.so`
-- ✅ **Assets for data** → Large dependency trees (node_modules) go in `assets/` directory
+- ✅ **Assets for data** → Large dependency trees and importable modules go in `assets/`
+
+**Integration Rules:**
+
+1. **Executable Integration** (for CLI commands):
+   - **ANY executable file** (binary, shell script, Node.js script) → Add `.so` extension → Place in `jniLibs/arm64-v8a/`
+   - Android extracts all `.so` files to system location with executable permissions
+   - TermuxInstaller creates symbolic links from `/usr/bin/` to the extracted executables
+
+2. **JavaScript Module Integration** (for require/import):
+   - **JavaScript files** intended for `require()` or `import` → Keep `.js` extension → Place in `assets/termux/usr/lib/node_modules/`
+   - Allows other scripts to import: `require('gemini.js')` or `import gemini from 'gemini.js'`
+
+3. **Dual Integration** (for Node.js tools that are both CLI and module):
+   - Place same content in **both locations**: `jniLibs/arm64-v8a/gemini.so` (executable) + `assets/.../node_modules/gemini.js` (module)
+   - Enables both CLI usage (`gemini --help`) and programmatic usage (`require('gemini.js')`)
 
 ## 🔧 Technical Deep Dive
 
@@ -433,14 +451,18 @@ termux_AI/
 │   └── Contents-aarch64                   # Package index for dependencies
 │
 ├── app/src/main/
-│   ├── jniLibs/arm64-v8a/                 # ⚙️ THE MAGIC DIRECTORY
+│   ├── jniLibs/arm64-v8a/                 # ⚙️ EXECUTABLE DIRECTORY
 │   │   ├── node.so                        # Node.js binary (24MB)
 │   │   ├── git.so                         # Git binary (2.1MB)
+│   │   ├── gemini.so                      # Gemini AI CLI script (12MB)
 │   │   ├── libssl3.so                     # OpenSSL library
 │   │   └── libcurl.so                     # cURL library
 │   │
-│   ├── assets/termux/usr/lib/             # 📋 Large dependencies
+│   ├── assets/termux/usr/lib/             # 📋 MODULES & DEPENDENCIES
 │   │   ├── node_modules/                  # NPM ecosystem
+│   │   │   ├── npm/                       # NPM package manager
+│   │   │   ├── corepack/                  # Node.js package manager manager
+│   │   │   └── gemini.js                  # Gemini module for require/import
 │   │   └── ca-certificates/               # SSL certificates
 │   │
 │   └── java/.../TermuxInstaller.java      # 🔗 Symlink orchestration
