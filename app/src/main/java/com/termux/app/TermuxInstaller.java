@@ -484,7 +484,9 @@ final class TermuxInstaller {
             "libswresample.so",
             "libavdevice.so",
             "libavcodec.so",
-            "libavformat.so"
+            "libavformat.so",
+            // FFmpeg dependencies
+            "libass.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
