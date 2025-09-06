@@ -379,6 +379,7 @@ final class TermuxInstaller {
             {"zstd.so", "zstd"},
             // AI CLI tools
             {"gemini.so", "gemini"},
+            {"claude.so", "claude"},
             // FFmpeg multimedia tools
             {"ffmpeg.so", "ffmpeg"},
             {"ffprobe.so", "ffprobe"}

@@ -115,6 +115,7 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 | Component | Version | Description |
 |-----------|---------|-------------|
 | **Gemini CLI** | v0.3.3 | Google's Gemini AI CLI tool for conversational AI |
+| **Claude CLI** | Latest | Anthropic's Claude AI CLI for code assistance |
 | **Codex CLI** | v0.25.0 | AI-powered CLI assistant |
 | **Codex-Exec** | v0.25.0 | Non-interactive AI command execution |
 
@@ -553,6 +554,7 @@ adb shell "echo 'export CUSTOM_VAR=value' > /data/local/tmp/android_sourceme"
 | **`codex`** | Interactive AI coding assistant | `codex "write a REST API"` |
 | **`codex-exec`** | Non-interactive AI execution | `codex-exec "fix this bug"` |
 | **`gemini`** | Google Gemini AI CLI | `gemini "explain this code"` |
+| **`claude`** | Anthropic Claude AI CLI | `claude "help with this function"` |
 
 ### 💻 Core Development Stack
 | Tool | Version | Description |
