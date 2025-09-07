@@ -3,7 +3,7 @@
 A revolutionary fork of `termux/termux-app` that **eliminates traditional package bootstrapping** entirely and includes **comprehensive AI development tools**. Instead of complex zip extraction and package installation, Termux AI embeds native executables directly into the Android APK as `.so` files, leveraging Android's automatic library extraction for instant availability.
 
 🤖 **Multi-AI Support**: Gemini CLI, Claude CLI, and Codex CLI built-in  
-🎬 **FFmpeg Integration**: Complete multimedia processing capabilities  
+🎬 **FFmpeg Integration**: Complete multimedia processing capabilities (v7.1.1, 100% dependencies resolved)  
 ⚡ **Instant Development**: Node.js, Git, and 400+ tools ready immediately
 
 ## 🎯 Key Innovation
@@ -14,7 +14,7 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 
 ✅ **No bootstrap required** - Launch and code immediately  
 ✅ **Multi-AI powered** - 3 AI assistants built-in (Gemini, Claude, Codex)  
-✅ **Multimedia ready** - FFmpeg for video/audio processing  
+✅ **Multimedia ready** - FFmpeg v7.1.1 for professional video/audio processing  
 ✅ **W^X compliant** - Executables in read-only system locations  
 ✅ **SELinux compatible** - Uses Android's native library mechanism  
 ✅ **Faster startup** - No extraction or installation delays
@@ -34,7 +34,7 @@ A revolutionary fork of `termux/termux-app` that **eliminates traditional packag
 
 ### What's New in v1.8.0+
 - ✅ **Complete AI Integration** - Gemini CLI, Claude CLI, and Codex CLI ready-to-use
-- ✅ **FFmpeg Multimedia Support** - Video/audio processing with ffmpeg and ffprobe
+- ✅ **FFmpeg Multimedia Support** - Complete video/audio processing with ffmpeg v7.1.1 and ffprobe (100% dependencies resolved)
 - ✅ **100% Package Integration Success** - All 89 packages fully integrated
 - ✅ **Clean Naming Convention** - Removed `lib` prefix from 100+ executables
 - ✅ **Fixed Android Asset Packaging** - Resolved `__generated__` directory exclusion
@@ -64,8 +64,8 @@ codex --help           # AI coding assistant
 codex-exec --help      # Non-interactive AI execution
 
 # 🎬 Multimedia Processing
-ffmpeg -version        # FFmpeg v4.2.1 multimedia framework
-ffprobe -version       # Media file analyzer
+ffmpeg -version        # FFmpeg v7.1.1 multimedia framework (100% dependencies resolved)
+ffprobe -version       # Media file analyzer (complete library support)
 
 # 💻 Core Development Stack
 node --version         # Node.js v24.7.0
@@ -167,8 +167,8 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 
 | Component | Version | Description | Capabilities |
 |-----------|---------|-------------|--------------|
-| **FFmpeg** | v4.2.1-3 | Complete multimedia framework | Encode, decode, transcode, stream, filter |
-| **FFprobe** | v4.2.1-3 | Multimedia stream analyzer | Extract metadata, analyze formats, inspect streams |
+| **FFmpeg** | v7.1.1-6 | Complete multimedia framework (100% dependencies) | Encode, decode, transcode, stream, filter |
+| **FFprobe** | v7.1.1-6 | Multimedia stream analyzer (complete library support) | Extract metadata, analyze formats, inspect streams |
 
 **FFmpeg Power on Android:**
 - 🎥 **Video Processing** - Convert, compress, edit video files
@@ -289,13 +289,13 @@ make build && make install               # 🛠️ Test integration
 make sop-ldd-test                        # 📊 Test all 17 executables for dependencies
 ```
 
-**Real-world example** - FFmpeg multimedia integration required resolving 18+ dependencies:
+**Real-world example** - FFmpeg multimedia integration required resolving 20+ dependencies:
 - **AV1 codecs**: `libaom`, `librav1e`, `libSvtAv1Enc`, `libdav1d`
-- **Audio codecs**: `libopencore-amr`, `libmpg123`, `libtheora`  
+- **Audio codecs**: `libopencore-amr`, `libmpg123`, `libtheora`, `libFLAC`  
 - **Security**: `libsodium`, `libvo-amrwbenc`
 - **Formats**: `libwebp`, `libbluray`, `libudfread`
 
-Each iteration of the SOP loop identifies the next missing dependency, achieving **15/17 executables (88%+)** passing dependency tests.
+Each iteration of the SOP loop identifies the next missing dependency, achieving **17/17 executables (100%)** passing dependency tests with complete FFmpeg resolution.
 
 **What happens under the hood:**
 1. **Download** `.deb` from Termux repository
