@@ -361,6 +361,8 @@ final class TermuxInstaller {
             {"lesskey.so", "lesskey"},
             // Web terminal
             {"ttyd.so", "ttyd"},
+            // OpenCL utilities
+            {"libcllayerinfo.so", "cllayerinfo"},
             // Android Codex CLI
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
@@ -556,7 +558,19 @@ final class TermuxInstaller {
             "libavdevice61.so",
             "libpostproc58.so",
             "libswresample5.so",
-            "libswscale8.so"
+            "libswscale8.so",
+            // ZeroMQ library for FFmpeg
+            "libzmq.so",
+            // Rubber Band audio stretching library for FFmpeg
+            "librubberband.so",
+            // libzimg scaling, colorspace conversion, and dithering library
+            "libzimg.so",
+            // OpenCL ICD Loader
+            "libOpenCL.so",
+            // Game Music Emu library
+            "libgme.so",
+            // OpenMPT library for tracker music
+            "libopenmpt.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
