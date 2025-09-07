@@ -374,6 +374,9 @@ final class TermuxInstaller {
             {"libdav1d.so", "dav1d"},
             // SVT-AV1 video encoder
             {"libSvtAv1EncApp.so", "SvtAv1EncApp"},
+            // Rubber Band audio time-stretching and pitch-shifting tools
+            {"librubberband.so", "rubberband"},
+            {"librubberband-r3.so", "rubberband-r3"},
             // Android Codex CLI
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
@@ -621,7 +624,10 @@ final class TermuxInstaller {
             "libudfread.so",
             // FLAC (Free Lossless Audio Codec) libraries
             "libFLAC.so",
-            "libFLAC++.so"
+            "libFLAC++.so",
+            // Rubber Band audio time-stretching and pitch-shifting libraries
+            "librubberband.so",
+            "librubberband-jni.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib

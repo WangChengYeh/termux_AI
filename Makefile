@@ -23,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-ldd-test sop-add-package sop-check sop-check-all github-release github-release-notes github-auth-check github-tag-version
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-ldd-test sop-add-package sop-check sop-check-all sop-get-packages sop-check-updates sop-check-all-updates github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -67,6 +67,9 @@ help:
 	@echo "  sop-ldd-test    - Test executables with ldd for missing libraries"
 	@echo "  sop-check       - Compare package files between host and device"
 	@echo "  sop-check-all   - Check all packages (auto-extracts .deb files if needed)"
+	@echo "  sop-check-updates - Check if PACKAGE_NAME has newer version available"
+	@echo "  sop-check-all-updates - Check all local packages for newer versions"
+	@echo "  sop-get-packages - Download repository Packages-aarch64 metadata"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -980,6 +983,140 @@ sop-get-contents:
 		echo "✅ Downloaded and extracted Contents-aarch64 (45MB)"; \
 	else \
 		echo "✅ Contents-aarch64 already available"; \
+	fi
+
+# Download Packages-aarch64 if missing
+sop-get-packages:
+	@if [ ! -f "packages/Packages-aarch64" ]; then \
+		echo "📥 Downloading Packages-aarch64 file..."; \
+		mkdir -p packages; \
+		wget -O packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip packages/Packages-aarch64.gz && mv packages/Packages packages/Packages-aarch64 || \
+		(curl -o packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip packages/Packages-aarch64.gz && mv packages/Packages packages/Packages-aarch64); \
+		echo "✅ Downloaded and extracted Packages-aarch64 (15MB)"; \
+	else \
+		echo "✅ Packages-aarch64 already available"; \
+	fi
+
+# Check for package version updates
+sop-check-updates:
+	@if [ -z "$(PACKAGE_NAME)" ]; then \
+		echo "Usage: make sop-check-updates PACKAGE_NAME=nodejs"; \
+		echo "       make sop-check-updates  # Check all local packages"; \
+		exit 1; \
+	fi
+	@echo "🔍 Checking for package updates: $(PACKAGE_NAME)"
+	@echo "================================================================"
+	@echo ""
+	@# Ensure Packages-aarch64 is available
+	@$(MAKE) sop-get-packages
+	@echo "📦 Local Package Analysis"
+	@echo "========================="
+	@LOCAL_DEB=$$(find packages -name "$(PACKAGE_NAME)_*.deb" | head -1); \
+	if [ -z "$$LOCAL_DEB" ]; then \
+		echo "❌ No local .deb file found for $(PACKAGE_NAME)"; \
+		echo "Available packages:"; \
+		ls packages/*.deb 2>/dev/null | head -10 | xargs -n1 basename || echo "  (no packages found)"; \
+		exit 1; \
+	fi; \
+	LOCAL_VERSION=$$(basename "$$LOCAL_DEB" | cut -d_ -f2 | sed 's/_aarch64\.deb$$//' | sed 's/_all\.deb$$//'); \
+	LOCAL_SIZE=$$(ls -lh "$$LOCAL_DEB" | awk '{print $$5}'); \
+	echo "📄 Local: $(PACKAGE_NAME) v$$LOCAL_VERSION ($$LOCAL_SIZE)"; \
+	echo ""; \
+	echo "🌐 Repository Latest Version"; \
+	echo "============================"; \
+	REPO_INFO=$$(grep -A 10 "^Package: $(PACKAGE_NAME)$$" packages/Packages-aarch64 | head -20); \
+	if [ -z "$$REPO_INFO" ]; then \
+		echo "❌ Package $(PACKAGE_NAME) not found in repository"; \
+		echo "💡 Check package name spelling or try: make sop-list LETTER=$$(echo $(PACKAGE_NAME) | cut -c1)"; \
+		exit 1; \
+	fi; \
+	REPO_VERSION=$$(echo "$$REPO_INFO" | grep "^Version:" | awk '{print $$2}' | head -1); \
+	REPO_SIZE=$$(echo "$$REPO_INFO" | grep "^Size:" | awk '{print $$2}' | head -1); \
+	REPO_SIZE_MB=$$(echo "$$REPO_SIZE" | awk '{printf "%.1fMB", $$1/1024/1024}'); \
+	echo "📄 Repository: $(PACKAGE_NAME) v$$REPO_VERSION ($$REPO_SIZE_MB)"; \
+	echo ""; \
+	echo "📊 Comparison Results"; \
+	echo "===================="; \
+	if [ "$$LOCAL_VERSION" = "$$REPO_VERSION" ]; then \
+		echo "✅ CURRENT: Local version matches repository (v$$LOCAL_VERSION)"; \
+		echo ""; \
+		echo "📋 Package Details:"; \
+		echo "$$REPO_INFO" | grep -E "^(Package|Version|Architecture|Maintainer|Description):" | while read line; do \
+			echo "  $$line"; \
+		done; \
+	else \
+		echo "🔄 UPDATE AVAILABLE"; \
+		echo "  📍 Current: v$$LOCAL_VERSION"; \
+		echo "  🆕 Latest:  v$$REPO_VERSION"; \
+		echo ""; \
+		echo "💡 To update, run:"; \
+		echo "  rm $$LOCAL_DEB"; \
+		echo "  make sop-download PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$$REPO_VERSION"; \
+		echo "  make sop-add-package PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$$REPO_VERSION"; \
+	fi
+
+# Check all local packages for updates
+sop-check-all-updates:
+	@echo "🔍 Checking all local packages for updates"
+	@echo "=========================================="
+	@echo ""
+	@# Ensure Packages-aarch64 is available
+	@$(MAKE) sop-get-packages
+	@ALL_LOCAL_PACKAGES=$$(find packages -maxdepth 1 -name "*.deb" -type f | while read deb; do \
+		basename "$$deb" | sed 's/_.*\.deb$$//' | sed 's/-[0-9].*//'; \
+	done | sort -u); \
+	if [ -z "$$ALL_LOCAL_PACKAGES" ]; then \
+		echo "❌ No .deb packages found in packages/ directory"; \
+		exit 1; \
+	fi; \
+	TOTAL_PACKAGES=0; \
+	CURRENT_PACKAGES=0; \
+	OUTDATED_PACKAGES=0; \
+	echo "📦 Scanning local packages..."; \
+	echo ""; \
+	echo "$$ALL_LOCAL_PACKAGES" | while read PACKAGE; do \
+		if [ -n "$$PACKAGE" ]; then \
+			LOCAL_DEB=$$(find packages -name "$$PACKAGE*.deb" | head -1); \
+			if [ -n "$$LOCAL_DEB" ]; then \
+				LOCAL_VERSION=$$(basename "$$LOCAL_DEB" | cut -d_ -f2 | sed 's/_aarch64\.deb$$//' | sed 's/_all\.deb$$//'); \
+				REPO_VERSION=$$(grep -A 5 "^Package: $$PACKAGE$$" packages/Packages-aarch64 | grep "^Version:" | awk '{print $$2}' | head -1); \
+				if [ -n "$$REPO_VERSION" ]; then \
+					if [ "$$LOCAL_VERSION" = "$$REPO_VERSION" ]; then \
+						echo "✅ $$PACKAGE: v$$LOCAL_VERSION (current)"; \
+						echo "1" >> /tmp/current_packages; \
+					else \
+						echo "🔄 $$PACKAGE: v$$LOCAL_VERSION → v$$REPO_VERSION (update available)"; \
+						echo "1" >> /tmp/outdated_packages; \
+					fi; \
+				else \
+					echo "⚠️  $$PACKAGE: v$$LOCAL_VERSION (not found in repository)"; \
+				fi; \
+				echo "1" >> /tmp/total_packages; \
+			fi; \
+		fi; \
+	done; \
+	echo ""; \
+	echo "📈 Summary"; \
+	echo "=========="; \
+	TOTAL_COUNT=$$(cat /tmp/total_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	CURRENT_COUNT=$$(cat /tmp/current_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	OUTDATED_COUNT=$$(cat /tmp/outdated_packages 2>/dev/null | wc -l | tr -d ' ' || echo "0"); \
+	rm -f /tmp/total_packages /tmp/current_packages /tmp/outdated_packages; \
+	echo "📊 Total packages checked: $$TOTAL_COUNT"; \
+	echo "✅ Current packages: $$CURRENT_COUNT"; \
+	echo "🔄 Outdated packages: $$OUTDATED_COUNT"; \
+	if [ "$$OUTDATED_COUNT" -gt 0 ]; then \
+		echo ""; \
+		echo "💡 To update specific packages, run:"; \
+		echo "  make sop-check-updates PACKAGE_NAME=<package-name>"; \
+		echo ""; \
+		echo "🔄 To update all packages systematically:"; \
+		echo "  1. Remove old .deb files: rm packages/*.deb"; \
+		echo "  2. Re-download latest versions using sop-download"; \
+		echo "  3. Re-integrate using sop-add-package"; \
+	else \
+		echo ""; \
+		echo "🎉 All packages are up to date!"; \
 	fi
 
 # Enhanced GitHub release using script
