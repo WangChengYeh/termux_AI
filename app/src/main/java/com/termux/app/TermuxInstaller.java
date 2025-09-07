@@ -383,6 +383,7 @@ final class TermuxInstaller {
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
             // Compression utilities
+            {"libbrotli.so", "brotli"},
             {"bzip2recover.so", "bzip2recover"},
             {"lzmainfo.so", "lzmainfo"},
             // Terminal utilities

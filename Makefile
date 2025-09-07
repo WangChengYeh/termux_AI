@@ -71,6 +71,8 @@ help:
 	@echo "  sop-check-all-updates - Check all local packages for newer versions"
 	@echo "  sop-auto-update-package - Auto-update PACKAGE_NAME or all outdated packages"
 	@echo "  sop-get-packages - Download repository Packages-aarch64 metadata"
+	@echo "  sop-get-contents - Download repository Contents-aarch64 metadata"
+	@echo "                     Use UPDATE=1 to force refresh metadata"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
 	@echo "SOP Variables: PACKAGE_NAME, VERSION, LETTER (for browsing)"
@@ -943,11 +945,8 @@ sop-find-lib:
 		exit 1; \
 	fi
 	@echo "🔍 Finding package containing $(LIBRARY)..."
-	@if [ ! -f "packages/Contents-aarch64" ]; then \
-		echo "❌ packages/Contents-aarch64 not found"; \
-		echo "Download from: https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz"; \
-		exit 1; \
-	fi
+	@# Ensure Contents-aarch64 is available and up-to-date
+	@$(MAKE) sop-get-contents UPDATE=1
 	@echo "📋 Results from Contents-aarch64:"
 	@grep "$(LIBRARY)" packages/Contents-aarch64 | head -5 || echo "⚠️  Library $(LIBRARY) not found in Contents-aarch64"
 
@@ -975,27 +974,32 @@ sop-add-deps:
 
 # Download Contents-aarch64 if missing
 sop-get-contents:
-	@if [ ! -f "packages/Contents-aarch64" ]; then \
-		echo "📥 Downloading Contents-aarch64 file..."; \
+	@if [ "$(UPDATE)" = "1" ] || [ "$(FORCE)" = "1" ] || [ ! -f "packages/Contents-aarch64" ]; then \
+		echo "📥 Downloading latest Contents-aarch64 file..."; \
 		mkdir -p packages; \
-		# Contents file from termux-main (repository metadata) - compressed format
-		wget -O packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip packages/Contents-aarch64.gz || \
-		curl -o packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip packages/Contents-aarch64.gz; \
-		echo "✅ Downloaded and extracted Contents-aarch64 (45MB)"; \
+		rm -f packages/Contents-aarch64*; \
+		wget -O packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip -f packages/Contents-aarch64.gz || \
+		(curl -o packages/Contents-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/Contents-aarch64.gz" && gunzip -f packages/Contents-aarch64.gz); \
+		echo "✅ Downloaded and extracted latest Contents-aarch64 (45MB)"; \
+		echo "📋 Repository contents metadata updated with latest file locations"; \
 	else \
 		echo "✅ Contents-aarch64 already available"; \
+		echo "💡 To force update, use: make sop-get-contents UPDATE=1"; \
 	fi
 
 # Download Packages-aarch64 if missing
 sop-get-packages:
-	@if [ ! -f "packages/Packages-aarch64" ]; then \
-		echo "📥 Downloading Packages-aarch64 file..."; \
+	@if [ "$(UPDATE)" = "1" ] || [ "$(FORCE)" = "1" ] || [ ! -f "packages/Packages-aarch64" ]; then \
+		echo "📥 Downloading latest Packages-aarch64 file..."; \
 		mkdir -p packages; \
-		wget -O packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip packages/Packages-aarch64.gz && mv packages/Packages packages/Packages-aarch64 || \
-		(curl -o packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip packages/Packages-aarch64.gz && mv packages/Packages packages/Packages-aarch64); \
-		echo "✅ Downloaded and extracted Packages-aarch64 (15MB)"; \
+		rm -f packages/Packages-aarch64*; \
+		(wget -O packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip -f packages/Packages-aarch64.gz) || \
+		(curl -o packages/Packages-aarch64.gz "https://packages.termux.dev/apt/termux-main/dists/stable/main/binary-aarch64/Packages.gz" && gunzip -f packages/Packages-aarch64.gz); \
+		echo "✅ Downloaded and extracted latest Packages-aarch64 (15MB)"; \
+		echo "📋 Repository metadata updated with latest package versions"; \
 	else \
 		echo "✅ Packages-aarch64 already available"; \
+		echo "💡 To force update, use: make sop-get-packages UPDATE=1"; \
 	fi
 
 # Check for package version updates
@@ -1008,8 +1012,8 @@ sop-check-updates:
 	@echo "🔍 Checking for package updates: $(PACKAGE_NAME)"
 	@echo "================================================================"
 	@echo ""
-	@# Ensure Packages-aarch64 is available
-	@$(MAKE) sop-get-packages
+	@# Ensure Packages-aarch64 is available and up-to-date
+	@$(MAKE) sop-get-packages UPDATE=1
 	@echo "📦 Local Package Analysis"
 	@echo "========================="
 	@LOCAL_DEB=$$(find packages -name "$(PACKAGE_NAME)_*.deb" | head -1); \
@@ -1061,8 +1065,8 @@ sop-check-all-updates:
 	@echo "🔍 Checking all local packages for updates"
 	@echo "=========================================="
 	@echo ""
-	@# Ensure Packages-aarch64 is available
-	@$(MAKE) sop-get-packages
+	@# Ensure Packages-aarch64 is available and up-to-date
+	@$(MAKE) sop-get-packages UPDATE=1
 	@ALL_LOCAL_PACKAGES=$$(find packages -maxdepth 1 -name "*.deb" -type f | while read deb; do \
 		basename "$$deb" | sed 's/_.*\.deb$$//' | sed 's/-[0-9].*//'; \
 	done | sort -u); \
@@ -1130,8 +1134,8 @@ sop-auto-update-package:
 	@echo "🔄 Auto-updating package from Termux repository"
 	@echo "================================================"
 	@echo ""
-	@# Ensure repository metadata is available
-	@$(MAKE) sop-get-packages
+	@# Ensure repository metadata is available and up-to-date
+	@$(MAKE) sop-get-packages UPDATE=1
 	@if [ "$(PACKAGE_NAME)" = "all" ]; then \
 		echo "🔄 Updating ALL outdated packages..."; \
 		echo ""; \
