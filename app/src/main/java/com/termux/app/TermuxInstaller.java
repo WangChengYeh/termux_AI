@@ -372,6 +372,8 @@ final class TermuxInstaller {
             {"libcwebp.so", "cwebp"},
             // AV1 video decoder
             {"libdav1d.so", "dav1d"},
+            // SVT-AV1 video encoder
+            {"libSvtAv1EncApp.so", "SvtAv1EncApp"},
             // Android Codex CLI
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
@@ -600,7 +602,23 @@ final class TermuxInstaller {
             // AV1 video encoder library
             "libaom.so",
             // Rav1e AV1 encoder library (Rust-based)
-            "librav1e.so"
+            "librav1e.so",
+            // SVT-AV1 encoder library (Scalable Video Technology)
+            "libSvtAv1Enc.so",
+            // Theora video codec libraries
+            "libtheoraenc.so",
+            "libtheora.so",
+            "libtheoradec.so",
+            // VisualOn AMR-WB encoder library
+            "libvo-amrwbenc.so",
+            // Sodium cryptographic library (for libzmq)
+            "libsodium.so",
+            // MPG123 MPEG audio decoder library suite
+            "libmpg123.so",
+            "libsyn123.so",
+            "libout123.so",
+            // UDF filesystem library for Blu-ray support
+            "libudfread.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -702,8 +720,12 @@ final class TermuxInstaller {
             // librav1e versions
             {"librav1e.so", "librav1e.so.0"},
             {"librav1e.so", "librav1e.so.0.7.1"},
-            // libx264 versions - only version 155
+            // libvo-amrwbenc versions
+            {"libvo-amrwbenc.so", "libvo-amrwbenc.so.0"},
+            {"libvo-amrwbenc.so", "libvo-amrwbenc.so.0.0.4"},
+            // libx264 versions
             {"libx264.so", "libx264.so.155"},
+            {"libx264.so", "libx264.so.164"},
             // libxvidcore versions
             {"libxvidcore.so", "libxvidcore.so.4"},
             {"libxvidcore.so", "libxvidcore.so.4.3"},
