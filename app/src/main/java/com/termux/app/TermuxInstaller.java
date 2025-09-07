@@ -618,7 +618,10 @@ final class TermuxInstaller {
             "libsyn123.so",
             "libout123.so",
             // UDF filesystem library for Blu-ray support
-            "libudfread.so"
+            "libudfread.so",
+            // FLAC (Free Lossless Audio Codec) libraries
+            "libFLAC.so",
+            "libFLAC++.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
