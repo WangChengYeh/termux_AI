@@ -273,6 +273,30 @@ make sop-check PACKAGE_NAME=nodejs    # ✅ Verify single package integration
 make sop-check-all                    # 📊 Test all 89 packages (100% success)
 ```
 
+### 🔧 Systematic Dependency Resolution
+
+For complex packages like **FFmpeg** with extensive multimedia dependencies, use the **SOP Loop** for systematic resolution:
+
+```bash
+# 🎯 Dependency Resolution Loop (until all dependencies are satisfied)
+make sop-ldd-test PACKAGE_NAME=ffmpeg    # 🔍 Identify missing libraries
+make sop-find-lib LIBRARY=libssl.so      # 📋 Find package containing library  
+make sop-add-package PACKAGE_NAME=openssl VERSION=3.5.2  # ➕ Add dependency
+make build && make install               # 🛠️ Test integration
+# Repeat until sop-ldd-test shows all libraries found
+
+# 🧪 Comprehensive testing
+make sop-ldd-test                        # 📊 Test all 17 executables for dependencies
+```
+
+**Real-world example** - FFmpeg multimedia integration required resolving 18+ dependencies:
+- **AV1 codecs**: `libaom`, `librav1e`, `libSvtAv1Enc`, `libdav1d`
+- **Audio codecs**: `libopencore-amr`, `libmpg123`, `libtheora`  
+- **Security**: `libsodium`, `libvo-amrwbenc`
+- **Formats**: `libwebp`, `libbluray`, `libudfread`
+
+Each iteration of the SOP loop identifies the next missing dependency, achieving **15/17 executables (88%+)** passing dependency tests.
+
 **What happens under the hood:**
 1. **Download** `.deb` from Termux repository
 2. **Extract** using `dpkg-deb` to analyze contents
@@ -442,6 +466,9 @@ make build && make install && make run
 | **Package Management** | `make sop-add-package PACKAGE_NAME=vim VERSION=9.1.1700` | Add new package |
 | | `make sop-list LETTER=v` | Browse packages |
 | | `make sop-analyze PACKAGE_NAME=vim` | Analyze dependencies |
+| **Dependency Resolution** | `make sop-ldd-test PACKAGE_NAME=ffmpeg` | Test executable for missing libraries |
+| | `make sop-ldd-test` | Test all executables (comprehensive) |
+| | `make sop-find-lib LIBRARY=libssl.so` | Find package containing library |
 | **Production** | `BUILD_TYPE=release make build` | Build release APK |
 | | `make github-release` | Create GitHub release |
 | **Diagnostics** | `make doctor` | Check development environment |
