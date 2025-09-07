@@ -191,6 +191,8 @@ node (binary) → Rename to node.so → Place in jniLibs/ → Android handles ev
 | **zlib** | v1.3.1-1 | Compression library |
 | **libiconv** | v1.18-1 | Character encoding conversion |
 | **json-c** | v0.18-1 | JSON parsing library |
+| **libass** | v0.17.4 | ASS/SSA subtitle rendering library |
+| **freetype** | v2.13.3 | Font rendering engine |
 
 ### Complete Package List (48 packages, 500MB) - 100% Integration Success ✅
 
@@ -271,6 +273,11 @@ make sop-build                        # 🛠️ Build & test APK
 # 🧪 Package verification commands
 make sop-check PACKAGE_NAME=nodejs    # ✅ Verify single package integration
 make sop-check-all                    # 📊 Test all 89 packages (100% success)
+
+# 🔄 Package update management
+make sop-check-updates PACKAGE_NAME=nodejs  # 🔍 Check if package has newer version
+make sop-check-all-updates            # 📊 Check all local packages for updates
+make sop-get-packages                 # 📥 Download repository metadata
 ```
 
 ### 🔧 Systematic Dependency Resolution
@@ -466,6 +473,8 @@ make build && make install && make run
 | **Package Management** | `make sop-add-package PACKAGE_NAME=vim VERSION=9.1.1700` | Add new package |
 | | `make sop-list LETTER=v` | Browse packages |
 | | `make sop-analyze PACKAGE_NAME=vim` | Analyze dependencies |
+| | `make sop-check-updates PACKAGE_NAME=vim` | Check for package updates |
+| | `make sop-check-all-updates` | Check all packages for updates |
 | **Dependency Resolution** | `make sop-ldd-test PACKAGE_NAME=ffmpeg` | Test executable for missing libraries |
 | | `make sop-ldd-test` | Test all executables (comprehensive) |
 | | `make sop-find-lib LIBRARY=libssl.so` | Find package containing library |

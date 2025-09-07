@@ -25,15 +25,14 @@
 #
 
 # Configurable parameters set by autoconf
-version_string="Kerberos 5 release 1.17"
+version_string="Kerberos 5 release 1.22.1"
 
 prefix=/data/data/com.termux/files/usr
 exec_prefix=${prefix}
-includedir=${prefix}/include
+includedir=/data/data/com.termux/files/usr/include
 libdir=/data/data/com.termux/files/usr/lib
 CC_LINK='$(CC) $(PROG_LIBPATH) $(PROG_RPATH_FLAGS) $(CFLAGS) $(LDFLAGS)'
 KDB5_DB_LIB=-ldb
-LDFLAGS='-L/data/data/com.termux/files/usr/lib -Wl,-z,relro,-z,now -landroid-support'
 RPATH_FLAG=''
 PROG_RPATH_FLAGS=''
 PTHREAD_CFLAGS='-pthread'
@@ -42,8 +41,7 @@ DEFCCNAME='/data/data/com.termux/files/usr/tmp/krb5cc_%{uid}'
 DEFKTNAME='/data/data/com.termux/files/usr/etc/krb5.keytab'
 DEFCKTNAME='/data/data/com.termux/files/usr/var/krb5/user/%{euid}/client.keytab'
 
-LIBS='-landroid-glob -llog -lc'
-GEN_LIB=
+LIBS='-landroid-glob -lresolv_wrapper'
 
 # Defaults for program
 library=krb5
@@ -70,8 +68,7 @@ while test $# != 0; do
 	--defktname)
 	    do_defktname=1
 	    ;;
-	--deps)
-	    do_deps=1
+	--deps) # historically a no-op
 	    ;;
 	--exec-prefix)
 	    do_exec_prefix=1
@@ -255,8 +252,7 @@ if test -n "$do_libs"; then
     fi
 
     # If we ever support a flag to generate output suitable for static
-    # linking, we would output "-lkrb5support $GEN_LIB $LIBS $DL_LIB"
-    # here.
+    # linking, we would output "-lkrb5support $LIBS $DL_LIB" here.
 
     echo $lib_flags
 fi
