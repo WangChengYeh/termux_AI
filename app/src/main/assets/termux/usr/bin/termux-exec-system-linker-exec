@@ -16,7 +16,6 @@ esac
 
 termux_exec__system_linker_exec__log() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@"; fi }
 termux_exec__system_linker_exec__log_error() { echo "termux-exec:" "$@" 1>&2; }
-termux_exec__system_linker_exec__log_error_for_level() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__SYSTEM_LINKER_EXEC__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@" 1>&2; fi }
 
 
 
@@ -32,7 +31,7 @@ termux_exec__system_linker_exec__main() {
         termux_exec__system_linker_exec__show_help || return $?
         return 0
     elif [ "${1:-}" = "--version" ]; then
-        echo "termux-exec-system-linker-exec version=1:2.3.0 org=termux project=termux-exec-package"; return $?
+        echo "termux-exec-system-linker-exec version=1:2.4.0 org=termux project=termux-exec-package"; return $?
         return 0
     fi
 
@@ -96,7 +95,7 @@ termux_exec__system_linker_exec__enabled__run_command() {
             esac
             ;;
     esac
-    termux_exec__system_linker_exec__log_error_for_level 2 "android_build_version_sdk: '$android_build_version_sdk'"
+    termux_exec__system_linker_exec__log 2 "android_build_version_sdk: '$android_build_version_sdk'"
 
 
     local system_linker_exec_mode="${TERMUX_EXEC__SYSTEM_LINKER_EXEC__MODE:-}"
@@ -104,7 +103,7 @@ termux_exec__system_linker_exec__enabled__run_command() {
         disable|enable|force) :;;
         *) system_linker_exec_mode="enable";;
     esac
-    termux_exec__system_linker_exec__log_error_for_level 2 "system_linker_exec_mode: '$system_linker_exec_mode'"
+    termux_exec__system_linker_exec__log 2 "system_linker_exec_mode: '$system_linker_exec_mode'"
 
 
     local __system_linker_exec_enabled="false"
@@ -117,7 +116,7 @@ termux_exec__system_linker_exec__enabled__run_command() {
         if [ "$android_build_version_sdk" -ge 29 ]; then
             system_linker_exec_available="true"
         fi
-        termux_exec__system_linker_exec__log_error_for_level 2 "system_linker_exec_available: '$system_linker_exec_available'"
+        termux_exec__system_linker_exec__log 2 "system_linker_exec_available: '$system_linker_exec_available'"
 
         if [ "$system_linker_exec_available" = "true" ]; then
             __system_linker_exec_enabled="true"
@@ -138,10 +137,10 @@ termux_exec__system_linker_exec__enabled__run_command() {
             se_process_context="$(cat "/proc/self/attr/current")" || true
             if [ -z "$se_process_context" ]; then
                 termux_exec__system_linker_exec__log_error "Failed to read se_process_context value from '/proc/self/attr/current': '$se_process_context'"
-                termux_exec__system_linker_exec__log_error_for_level 2 "se_process_context_available: 'false'"
+                termux_exec__system_linker_exec__log 2 "se_process_context_available: 'false'"
                 app_data_file_exec_exempted="true"
             else
-                termux_exec__system_linker_exec__log_error_for_level 2 "se_process_context_from_file: '$se_process_context'"
+                termux_exec__system_linker_exec__log 2 "se_process_context_from_file: '$se_process_context'"
                 case "$se_process_context" in
                     "u:r:untrusted_app_25:"*|"u:r:untrusted_app_27:"*)
                         app_data_file_exec_exempted="true"
@@ -149,14 +148,14 @@ termux_exec__system_linker_exec__enabled__run_command() {
                 esac
             fi
 
-            termux_exec__system_linker_exec__log_error_for_level 2 "app_data_file_exec_exempted: '$app_data_file_exec_exempted'"
+            termux_exec__system_linker_exec__log 2 "app_data_file_exec_exempted: '$app_data_file_exec_exempted'"
 
             if [ "$app_data_file_exec_exempted" = "false" ]; then
                 __system_linker_exec_enabled="true"
             fi
         fi
     fi
-    termux_exec__system_linker_exec__log_error_for_level 2 "system_linker_exec_enabled: '$__system_linker_exec_enabled'"
+    termux_exec__system_linker_exec__log 2 "system_linker_exec_enabled: '$__system_linker_exec_enabled'"
 
     termux_exec__system_linker_exec__set_variable "$output_variable_name" "$__system_linker_exec_enabled"
 

@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/sh
 #
-# Copyright (C) 2000-2019 by
+# Copyright (C) 2000-2025 by
 # David Turner, Robert Wilhelm, and Werner Lemberg.
 #
 # This file is part of the FreeType project, and may only be used, modified,
@@ -14,7 +14,7 @@ export LC_ALL
 
 
 # if `pkg-config' is available, use values from `freetype2.pc'
-/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --atleast-pkgconfig-version 0.24 >/dev/null 2>&1
+/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --atleast-pkgconfig-version 0.24 >/dev/null 2>&1
 if test $? -eq 0 ; then
   # note that option `--variable' is not affected by the
   # PKG_CONFIG_SYSROOT_DIR environment variable
@@ -23,17 +23,17 @@ if test $? -eq 0 ; then
     export PKG_CONFIG_SYSROOT_DIR
   fi
 
-  prefix=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --variable prefix freetype2`
-  exec_prefix=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --variable exec_prefix freetype2`
+  prefix=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --variable prefix freetype2`
+  exec_prefix=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --variable exec_prefix freetype2`
 
-  includedir=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --variable includedir freetype2`
-  libdir=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --variable libdir freetype2`
+  includedir=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --variable includedir freetype2`
+  libdir=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --variable libdir freetype2`
 
-  version=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --modversion freetype2`
+  version=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --modversion freetype2`
 
-  cflags=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --cflags freetype2`
-  dynamic_libs=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --libs freetype2`
-  static_libs=`/home/builder/.termux-build/_cache/android5-r20-api-21-v2/bin/aarch64-linux-android-pkg-config --static --libs freetype2`
+  cflags=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --cflags freetype2`
+  dynamic_libs=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --libs freetype2`
+  static_libs=`/home/builder/.termux-build/_cache/android-r28c-api-24-v1/bin/pkg-config --static --libs freetype2`
 else
   prefix="/data/data/com.termux/files/usr"
   exec_prefix="/data/data/com.termux/files/usr"
@@ -41,11 +41,11 @@ else
   includedir="/data/data/com.termux/files/usr/include"
   libdir="/data/data/com.termux/files/usr/lib"
 
-  version=23.1.17
+  version=26.3.20
 
   cflags="-I${SYSROOT}$includedir/freetype2"
   dynamic_libs="-lfreetype"
-  static_libs="-lfreetype -L/data/data/com.termux/files/usr/lib -lz -lbz2 -L/data/data/com.termux/files/usr/lib -lpng16 -lm -lz -lm -lz"
+  static_libs="-lfreetype -L/data/data/com.termux/files/usr/lib -lz -lbz2 -L/data/data/com.termux/files/usr/lib -lpng16 -lm -lm -lz -L/data/data/com.termux/files/usr/lib -lbrotlidec -lbrotlicommon"
   if test "${SYSROOT}$libdir" != "/usr/lib"   &&
      test "${SYSROOT}$libdir" != "/usr/lib64" ; then
     libs_L="-L${SYSROOT}$libdir"

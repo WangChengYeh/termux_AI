@@ -23,7 +23,7 @@ APK_BASENAME := termux-app_apt-android-7-release_universal.apk
 endif
 APK := $(APK_DIR)/$(APK_BASENAME)
 
-.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-ldd-test sop-add-package sop-check sop-check-all sop-get-packages sop-check-updates sop-check-all-updates github-release github-release-notes github-auth-check github-tag-version
+.PHONY: help build release lint test clean install uninstall run logs devices abi verify-abi doctor grant-permissions check-jnilibs check-packages check-duplicates sop-help sop-list sop-download sop-extract sop-analyze sop-copy sop-update sop-build sop-test sop-user-test sop-ldd-test sop-add-package sop-check sop-check-all sop-get-packages sop-check-updates sop-check-all-updates sop-auto-update-package github-release github-release-notes github-auth-check github-tag-version
 
 help:
 	@echo "Termux AI Makefile (aarch64-only)"
@@ -69,6 +69,7 @@ help:
 	@echo "  sop-check-all   - Check all packages (auto-extracts .deb files if needed)"
 	@echo "  sop-check-updates - Check if PACKAGE_NAME has newer version available"
 	@echo "  sop-check-all-updates - Check all local packages for newer versions"
+	@echo "  sop-auto-update-package - Auto-update PACKAGE_NAME or all outdated packages"
 	@echo "  sop-get-packages - Download repository Packages-aarch64 metadata"
 	@echo ""
 	@echo "Variables: BUILD_TYPE=debug|release, MODULE=$(MODULE), APP_ID=$(APP_ID)"
@@ -1117,6 +1118,65 @@ sop-check-all-updates:
 	else \
 		echo ""; \
 		echo "🎉 All packages are up to date!"; \
+	fi
+
+# Auto-update packages from repository
+sop-auto-update-package:
+	@if [ -z "$(PACKAGE_NAME)" ]; then \
+		echo "Usage: make sop-auto-update-package PACKAGE_NAME=libaom"; \
+		echo "       make sop-auto-update-package PACKAGE_NAME=all  # Update all outdated packages"; \
+		exit 1; \
+	fi
+	@echo "🔄 Auto-updating package from Termux repository"
+	@echo "================================================"
+	@echo ""
+	@# Ensure repository metadata is available
+	@$(MAKE) sop-get-packages
+	@if [ "$(PACKAGE_NAME)" = "all" ]; then \
+		echo "🔄 Updating ALL outdated packages..."; \
+		echo ""; \
+		ALL_OUTDATED=$$($(MAKE) sop-check-all-updates 2>/dev/null | grep "🔄" | cut -d: -f1 | sed 's/🔄 //' || echo ""); \
+		if [ -z "$$ALL_OUTDATED" ]; then \
+			echo "✅ All packages are already up to date"; \
+			exit 0; \
+		fi; \
+		echo "📦 Found outdated packages:"; \
+		echo "$$ALL_OUTDATED" | while read pkg; do echo "  - $$pkg"; done; \
+		echo ""; \
+		echo "$$ALL_OUTDATED" | while read PACKAGE; do \
+			if [ -n "$$PACKAGE" ]; then \
+				echo "🔄 Processing $$PACKAGE..."; \
+				$(MAKE) sop-auto-update-package PACKAGE_NAME="$$PACKAGE" || echo "⚠️  Failed to update $$PACKAGE"; \
+			fi; \
+		done; \
+		echo "✅ Batch update completed"; \
+	else \
+		echo "📦 Checking $(PACKAGE_NAME) for updates..."; \
+		LOCAL_DEB=$$(find packages -name "$(PACKAGE_NAME)*.deb" | head -1); \
+		if [ -z "$$LOCAL_DEB" ]; then \
+			echo "❌ No local .deb file found for $(PACKAGE_NAME)"; \
+			echo "Use: make sop-download PACKAGE_NAME=$(PACKAGE_NAME) VERSION=<version>"; \
+			exit 1; \
+		fi; \
+		LOCAL_VERSION=$$(basename "$$LOCAL_DEB" | cut -d_ -f2 | sed 's/_aarch64\.deb$$//' | sed 's/_all\.deb$$//'); \
+		REPO_VERSION=$$(grep -A 5 "^Package: $(PACKAGE_NAME)$$" packages/Packages-aarch64 | grep "^Version:" | awk '{print $$2}' | head -1); \
+		if [ -z "$$REPO_VERSION" ]; then \
+			echo "❌ Package $(PACKAGE_NAME) not found in repository"; \
+			exit 1; \
+		fi; \
+		if [ "$$LOCAL_VERSION" = "$$REPO_VERSION" ]; then \
+			echo "✅ $(PACKAGE_NAME) v$$LOCAL_VERSION is already current"; \
+			exit 0; \
+		fi; \
+		echo "🔄 Update available: v$$LOCAL_VERSION → v$$REPO_VERSION"; \
+		echo ""; \
+		echo "🗑️  Removing old package..."; \
+		rm -f "$$LOCAL_DEB"; \
+		echo "⬇️  Downloading latest version..."; \
+		$(MAKE) sop-download PACKAGE_NAME=$(PACKAGE_NAME) VERSION="$$REPO_VERSION" || exit 1; \
+		echo "🔧 Integrating updated package..."; \
+		$(MAKE) sop-add-package PACKAGE_NAME=$(PACKAGE_NAME) || exit 1; \
+		echo "✅ Successfully updated $(PACKAGE_NAME) to v$$REPO_VERSION"; \
 	fi
 
 # Enhanced GitHub release using script

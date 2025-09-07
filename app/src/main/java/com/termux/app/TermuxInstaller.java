@@ -377,6 +377,8 @@ final class TermuxInstaller {
             // Rubber Band audio time-stretching and pitch-shifting tools
             {"librubberband.so", "rubberband"},
             {"librubberband-r3.so", "rubberband-r3"},
+            // ZeroMQ messaging library tools
+            {"libcurve_keygen.so", "curve_keygen"},
             // Android Codex CLI
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},

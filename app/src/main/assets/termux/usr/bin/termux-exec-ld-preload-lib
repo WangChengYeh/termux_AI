@@ -24,7 +24,6 @@ esac
 
 termux_exec__ld_preload_lib__log() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@"; fi }
 termux_exec__ld_preload_lib__log_error() { echo "termux-exec:" "$@" 1>&2; }
-termux_exec__ld_preload_lib__log_error_for_level() { local log_level="${1}"; shift; if [ "$TERMUX_EXEC__LD_PRELOAD_LIB__LOG_LEVEL" -ge "$log_level" ]; then echo "termux-exec:" "$@" 1>&2; fi }
 
 
 
@@ -40,7 +39,7 @@ termux_exec__ld_preload_lib__main() {
         termux_exec__ld_preload_lib__show_help || return $?
         return 0
     elif [ "${1:-}" = "--version" ]; then
-        echo "termux-exec-ld-preload-lib version=1:2.3.0 org=termux project=termux-exec-package"; return $?
+        echo "termux-exec-ld-preload-lib version=1:2.4.0 org=termux project=termux-exec-package"; return $?
         return 0
     fi
 
