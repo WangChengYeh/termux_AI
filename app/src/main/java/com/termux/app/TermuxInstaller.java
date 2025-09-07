@@ -547,7 +547,16 @@ final class TermuxInstaller {
             "libavcodec.so",
             "libavformat.so",
             "libavfilter.so",
-            "libavdevice.so"
+            "libavdevice.so",
+            // FFmpeg versioned libraries
+            "libavutil59.so",
+            "libavcodec61.so",
+            "libavformat61.so",
+            "libavfilter10.so",
+            "libavdevice61.so",
+            "libpostproc58.so",
+            "libswresample5.so",
+            "libswscale8.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -645,8 +654,7 @@ final class TermuxInstaller {
             // libvpx versions
             {"libvpx.so", "libvpx.so.6"},
             {"libvpx.so", "libvpx.so.6.1.0"},
-            // libx264 versions
-            {"libx264.so", "libx264.so.164"},
+            // libx264 versions - only version 155
             {"libx264.so", "libx264.so.155"},
             // libxvidcore versions
             {"libxvidcore.so", "libxvidcore.so.4"},
@@ -671,7 +679,16 @@ final class TermuxInstaller {
             {"libgmodule-2.0.so", "libgmodule-2.0.so.0"},
             {"libgobject-2.0.so", "libgobject-2.0.so.0"},
             {"libgthread-2.0.so", "libgthread-2.0.so.0"},
-            {"libgirepository-2.0.so", "libgirepository-2.0.so.0"}
+            {"libgirepository-2.0.so", "libgirepository-2.0.so.0"},
+            // FFmpeg 7.1.1 versioned libraries - create symlinks from base to versioned names
+            {"libavutil59.so", "libavutil.so.59"},
+            {"libavcodec61.so", "libavcodec.so.61"},
+            {"libavformat61.so", "libavformat.so.61"},
+            {"libavfilter10.so", "libavfilter.so.10"},
+            {"libavdevice61.so", "libavdevice.so.61"},
+            {"libpostproc58.so", "libpostproc.so.58"},
+            {"libswresample5.so", "libswresample.so.5"},
+            {"libswscale8.so", "libswscale.so.8"}
         };
         
         // Create symlinks for executables in /usr/bin
