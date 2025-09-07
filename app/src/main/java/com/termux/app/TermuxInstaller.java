@@ -384,7 +384,21 @@ final class TermuxInstaller {
             {"ffmpeg.so", "ffmpeg"},
             {"ffprobe.so", "ffprobe"},
             // Font rendering tools
-            {"freetype-config.so", "freetype-config"}
+            {"freetype-config.so", "freetype-config"},
+            // GLib tools
+            {"gtester.so", "gtester"},
+            {"gsettings.so", "gsettings"},
+            {"glib-compile-schemas.so", "glib-compile-schemas"},
+            {"gobject-query.so", "gobject-query"},
+            {"gi-decompile-typelib.so", "gi-decompile-typelib"},
+            {"gio-querymodules.so", "gio-querymodules"},
+            {"gapplication.so", "gapplication"},
+            {"glib-compile-resources.so", "glib-compile-resources"},
+            {"gresource.so", "gresource"},
+            {"gdbus.so", "gdbus"},
+            {"gi-compile-repository.so", "gi-compile-repository"},
+            {"gi-inspect-typelib.so", "gi-inspect-typelib"},
+            {"gio.so", "gio"}
         };
         
         // Define base libraries that create primary symlinks in /usr/lib
@@ -493,6 +507,15 @@ final class TermuxInstaller {
             "libiconv.so",
             "libcharset.so",
             "libandroid-glob.so",
+            // GLib libraries
+            "libglib-2.0.so",
+            "libgio-2.0.so",
+            "libgmodule-2.0.so",
+            "libgobject-2.0.so",
+            "libgthread-2.0.so",
+            "libgirepository-2.0.so",
+            // Graphite2 library for harfbuzz
+            "libgraphite2.so",
             "libgnutls.so",
             "libgnutlsxx.so",
             "libvpx.so",
@@ -517,7 +540,14 @@ final class TermuxInstaller {
             "libunistring.so",
             "libnettle.so",
             "libhogweed.so",
-            "libogg.so"
+            "libogg.so",
+            "libandroid-posix-semaphore.so",
+            "libexpat.so",
+            "libavutil.so",
+            "libavcodec.so",
+            "libavformat.so",
+            "libavfilter.so",
+            "libavdevice.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -588,6 +618,9 @@ final class TermuxInstaller {
             {"libkrb5support0.so", "libkrb5support.so"},
             {"libcom_err3.so", "libcom_err.so.3"},
             {"libcom_err3.so", "libcom_err.so"},
+            // expat versions
+            {"libexpat.so", "libexpat.so.1"},
+            {"libexpat.so", "libexpat.so.1.10.2"},
             {"libverto0.so", "libverto.so.0"},
             {"libverto0.so", "libverto.so"},
             {"libgssrpc4.so", "libgssrpc.so.4"},
@@ -631,7 +664,14 @@ final class TermuxInstaller {
             {"libhogweed.so", "libhogweed.so.6"},
             {"libhogweed.so", "libhogweed.so.6.11"},
             // libogg versions
-            {"libogg.so", "libogg.so.0"}
+            {"libogg.so", "libogg.so.0"},
+            // GLib library versions
+            {"libglib-2.0.so", "libglib-2.0.so.0"},
+            {"libgio-2.0.so", "libgio-2.0.so.0"},
+            {"libgmodule-2.0.so", "libgmodule-2.0.so.0"},
+            {"libgobject-2.0.so", "libgobject-2.0.so.0"},
+            {"libgthread-2.0.so", "libgthread-2.0.so.0"},
+            {"libgirepository-2.0.so", "libgirepository-2.0.so.0"}
         };
         
         // Create symlinks for executables in /usr/bin

@@ -67,29 +67,63 @@ test_executable() {
     
     log "🔍 Testing executable: $exe_name"
     
-    # Get the full path of the executable
-    # Check common locations for executables in Termux AI
-    local exe_paths=(
-        "/data/data/$APP_ID/files/usr/bin/$exe_name"
-        "/system/bin/$exe_name" 
-        "/system/xbin/$exe_name"
-    )
-    
+    # First check if it's a symlink in /usr/bin using run-as
+    local symlink_check=$(adb shell "run-as $APP_ID ls -la /data/data/$APP_ID/files/usr/bin/$exe_name 2>/dev/null" 2>/dev/null | tr -d '\r')
     local exe_path=""
     local exe_exists="NOT_FOUND"
     
-    for path in "${exe_paths[@]}"; do
-        local check_result=$(adb shell "[ -f '$path' ] && echo 'EXISTS' || echo 'NOT_FOUND'")
-        check_result=$(echo "$check_result" | tr -d '\r\n')
-        if [ "$check_result" = "EXISTS" ]; then
-            exe_path="$path"
-            exe_exists="EXISTS"
-            break
+    if echo "$symlink_check" | grep -q "\->"; then
+        # It's a symlink, extract the target
+        local symlink_target=$(echo "$symlink_check" | awk -F' -> ' '{print $2}')
+        exe_path="$symlink_target"
+        info "Found symlink: /usr/bin/$exe_name -> $symlink_target"
+        exe_exists="EXISTS"
+    else
+        # Check other locations
+        # Try to find the actual .so file in app lib directory
+        local app_lib_dir=$(adb shell "ls -d /data/app/*/com.termux*/lib/arm64 2>/dev/null | head -n1" 2>/dev/null | tr -d '\r\n')
+        if [ -z "$app_lib_dir" ]; then
+            app_lib_dir=$(adb shell "ls -d /data/app/*/com.termux*/lib/arm64-v8a 2>/dev/null | head -n1" 2>/dev/null | tr -d '\r\n')
         fi
-    done
+        
+        if [ -n "$app_lib_dir" ]; then
+            # Check for the .so file
+            local so_check=$(adb shell "ls -la $app_lib_dir/${exe_name}.so 2>/dev/null" 2>/dev/null | tr -d '\r')
+            if [ -n "$so_check" ] && ! echo "$so_check" | grep -q "No such file"; then
+                exe_path="$app_lib_dir/${exe_name}.so"
+                info "Found executable at: $exe_path"
+                exe_exists="EXISTS"
+            fi
+        fi
+        
+        # If still not found, check system locations
+        if [ "$exe_exists" = "NOT_FOUND" ]; then
+            local exe_paths=(
+                "/system/bin/$exe_name" 
+                "/system/xbin/$exe_name"
+            )
+            
+            for path in "${exe_paths[@]}"; do
+                local check_result=$(adb shell "[ -f '$path' ] && echo 'EXISTS' || echo 'NOT_FOUND'")
+                check_result=$(echo "$check_result" | tr -d '\r\n')
+                if [ "$check_result" = "EXISTS" ]; then
+                    exe_path="$path"
+                    exe_exists="EXISTS"
+                    break
+                fi
+            done
+        fi
+    fi
     
     if [ "$exe_exists" = "NOT_FOUND" ] || [ -z "$exe_path" ]; then
-        error "Executable '$exe_name' not found in any of the checked locations"
+        error "Executable '$exe_name' not found"
+        log "Checked locations:"
+        log "  - /data/data/$APP_ID/files/usr/bin/$exe_name (via run-as)"
+        if [ -n "$app_lib_dir" ]; then
+            log "  - $app_lib_dir/${exe_name}.so"
+        fi
+        log "  - /system/bin/$exe_name"
+        log "  - /system/xbin/$exe_name"
         return 1
     fi
     
@@ -97,7 +131,18 @@ test_executable() {
     
     # Run ldd on the executable
     log "📋 Running ldd on $exe_path..."
-    local ldd_output=$(adb shell "export LD_LIBRARY_PATH=/data/data/$APP_ID/files/usr/lib:/system/lib64:/system/lib && ldd '$exe_path' 2>&1 || echo 'LDD_FAILED'")
+    log "📝 Sourcing .profile to get proper environment variables (PATH, LD_LIBRARY_PATH)..."
+    
+    # Source .profile to get proper environment variables
+    # Use run-as if the executable is in the app's private directory
+    local ldd_output=""
+    if echo "$exe_path" | grep -q "/data/data/$APP_ID"; then
+        # Source .profile first to get proper PATH and LD_LIBRARY_PATH, then run ldd
+        ldd_output=$(adb shell "run-as $APP_ID sh -c 'cd /data/data/$APP_ID/files/home && source .profile 2>/dev/null; ldd \"$exe_path\"' 2>&1 || echo 'LDD_FAILED'")
+    else
+        # For system executables, still source .profile for consistent environment
+        ldd_output=$(adb shell "run-as $APP_ID sh -c 'cd /data/data/$APP_ID/files/home && source .profile 2>/dev/null; ldd \"$exe_path\"' 2>&1 || echo 'LDD_FAILED'")
+    fi
     
     if echo "$ldd_output" | grep -q "LDD_FAILED"; then
         error "ldd failed to analyze $exe_path"
@@ -129,6 +174,17 @@ test_executable() {
 # Test all common executables
 test_all_executables() {
     local executables=(
+        # Core Termux AI executables
+        "ffmpeg"
+        "ffprobe"
+        "node"
+        "git"
+        "gh"
+        "vim"
+        "bash"
+        "apt"
+        "dpkg"
+        # System executables
         "ls"
         "cat" 
         "grep"
