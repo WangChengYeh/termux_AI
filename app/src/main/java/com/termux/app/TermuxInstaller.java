@@ -363,6 +363,15 @@ final class TermuxInstaller {
             {"ttyd.so", "ttyd"},
             // OpenCL utilities
             {"libcllayerinfo.so", "cllayerinfo"},
+            // WebP image format utilities
+            {"libwebpmux.so", "webpmux"},
+            {"libwebpinfo.so", "webpinfo"},
+            {"libimg2webp.so", "img2webp"},
+            {"libgif2webp.so", "gif2webp"},
+            {"libdwebp.so", "dwebp"},
+            {"libcwebp.so", "cwebp"},
+            // AV1 video decoder
+            {"libdav1d.so", "dav1d"},
             // Android Codex CLI
             {"codex.so", "codex"},
             {"codex-exec.so", "codex-exec"},
@@ -570,7 +579,21 @@ final class TermuxInstaller {
             // Game Music Emu library
             "libgme.so",
             // OpenMPT library for tracker music
-            "libopenmpt.so"
+            "libopenmpt.so",
+            // Blu-ray disc playback library
+            "libbluray.so",
+            // Secure Reliable Transport (SRT) Protocol
+            "libsrt.so",
+            // Tiny C SSH library
+            "libssh.so",
+            // WebP image format libraries
+            "libwebp.so",
+            "libwebpmux.so",
+            "libwebpdecoder.so", 
+            "libwebpdemux.so",
+            "libsharpyuv.so",
+            // AV1 video decoder library
+            "libdav1d.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -668,6 +691,7 @@ final class TermuxInstaller {
             // libvpx versions
             {"libvpx.so", "libvpx.so.6"},
             {"libvpx.so", "libvpx.so.6.1.0"},
+            {"libvpx.so", "libvpx.so.11"},
             // libx264 versions - only version 155
             {"libx264.so", "libx264.so.155"},
             // libxvidcore versions
