@@ -593,7 +593,14 @@ final class TermuxInstaller {
             "libwebpdemux.so",
             "libsharpyuv.so",
             // AV1 video decoder library
-            "libdav1d.so"
+            "libdav1d.so",
+            // OpenCORE AMR audio codec libraries
+            "libopencore-amrwb.so",
+            "libopencore-amrnb.so",
+            // AV1 video encoder library
+            "libaom.so",
+            // Rav1e AV1 encoder library (Rust-based)
+            "librav1e.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
@@ -692,6 +699,9 @@ final class TermuxInstaller {
             {"libvpx.so", "libvpx.so.6"},
             {"libvpx.so", "libvpx.so.6.1.0"},
             {"libvpx.so", "libvpx.so.11"},
+            // librav1e versions
+            {"librav1e.so", "librav1e.so.0"},
+            {"librav1e.so", "librav1e.so.0.7.1"},
             // libx264 versions - only version 155
             {"libx264.so", "libx264.so.155"},
             // libxvidcore versions
