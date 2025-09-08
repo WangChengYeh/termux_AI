@@ -59,7 +59,7 @@ help:
 	@echo "  sop-download    - Download package PACKAGE_NAME and VERSION"
 	@echo "  sop-extract     - Extract package PACKAGE_NAME"
 	@echo "  sop-analyze     - Analyze extracted package structure"
-	@echo "  sop-copy        - Copy package files to Android structure"
+	@echo "  sop-copy        - Copy package files to Android structure (supports /opt/aosp paths)"
 	@echo "  sop-update      - Update TermuxInstaller.java (if needed)"
 	@echo "  sop-build       - Build and test integration"
 	@echo "  sop-test        - Interactive command testing in live app"
@@ -460,6 +460,21 @@ sop-copy:
 		cp "$$file" "$$target"; \
 		chmod +x "$$target"; \
 	done || true
+	@# Copy AOSP libraries from /opt/aosp/lib64/ path (for packages like aosp-libs)
+	@find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type f -path "*/opt/aosp/lib64/*" -name "*.so*" 2>/dev/null | while read file; do \
+		filename=$$(basename "$$file"); \
+		target="$(JNILIBS_DIR)/$$filename"; \
+		echo "  AOSP-LIB: $$filename -> jniLibs/ (from /opt/aosp/lib64/)"; \
+		cp "$$file" "$$target"; \
+		chmod +x "$$target"; \
+	done || true
+	@# Copy AOSP data files to assets (ICU data, timezone data, etc.)
+	@AOSP_DATA_DIR=$$(find $(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data -type d -path "*/opt/aosp" 2>/dev/null | head -1); \
+	if [ -n "$$AOSP_DATA_DIR" ] && [ -d "$$AOSP_DATA_DIR" ]; then \
+		echo "  AOSP-DATA: /opt/aosp -> assets/termux/opt/aosp/"; \
+		mkdir -p "$(ASSETS_DIR)/opt/aosp"; \
+		cp -r "$$AOSP_DATA_DIR"/* "$(ASSETS_DIR)/opt/aosp/"; \
+	fi
 	@# Copy supporting directories for scripts (like node_modules)
 	@if [ -d "$(PACKAGES_DIR)/$(PACKAGE_NAME)-complete/data/data/com.termux/files/usr/lib/node_modules" ]; then \
 		echo "  DEPENDENCIES: node_modules -> assets/termux/usr/lib/"; \
