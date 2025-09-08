@@ -434,10 +434,11 @@ final class TermuxInstaller {
             "libcares.so",
             "libbz2.so",
             "libsqlite3.so",
-            "libcrypto.so",
-            "libssl.so",
+            "libcrypto3.so",
+            "libssl3.so",
             "libssh2.so",
-            "liblzma.so",
+            "liblzma5.so",
+            "liblzma581.so",
             "libicudata.so",
             "libicui18n.so",
             "libicuio.so",
@@ -454,10 +455,8 @@ final class TermuxInstaller {
             "libgpg-error.so",
             "libmd.so",
             "libandroid-support.so",
-            "libreadline83.so",
             "libreadline8.so",
             "libhistory8.so",
-            "libhistory83.so",
             "libncurses6.so",
             "coreutils.so",
             "libandroid-selinux.so",
@@ -511,15 +510,7 @@ final class TermuxInstaller {
             "libxml2-16.so",
             "libkrad0.so",
             "libisccfg.so",
-            // FFmpeg libraries
-            "libavutil.so",
-            "libavfilter.so",
-            "libpostproc.so",
-            "libswscale.so",
-            "libswresample.so",
-            "libavdevice.so",
-            "libavcodec.so",
-            "libavformat.so",
+            // FFmpeg libraries - using versioned names only
             // FFmpeg dependencies
             "libass.so",
             "libfreetype.so",
@@ -562,12 +553,7 @@ final class TermuxInstaller {
             "libogg.so",
             "libandroid-posix-semaphore.so",
             "libexpat.so",
-            "libavutil.so",
-            "libavcodec.so",
-            "libavformat.so",
-            "libavfilter.so",
-            "libavdevice.so",
-            // FFmpeg versioned libraries
+            // FFmpeg versioned libraries (primary files)
             "libavutil59.so",
             "libavcodec61.so",
             "libavformat61.so",
@@ -645,11 +631,14 @@ final class TermuxInstaller {
             // sqlite versions
             {"libsqlite3.so", "libsqlite3.so.0"},
             // openssl versions
-            {"libcrypto.so", "libcrypto.so.3"},
-            {"libssl.so", "libssl.so.3"},
-            // lzma versions - unified to liblzma5.so (removed liblzma581.so)
-            {"liblzma.so", "liblzma.so.5"},
-            {"liblzma.so", "liblzma.so.5.8.1"},
+            {"libcrypto3.so", "libcrypto.so"},
+            {"libcrypto3.so", "libcrypto.so.3"},
+            {"libssl3.so", "libssl.so"},
+            {"libssl3.so", "libssl.so.3"},
+            // lzma versions - using versioned files  
+            {"liblzma5.so", "liblzma.so"},
+            {"liblzma5.so", "liblzma.so.5"},
+            {"liblzma581.so", "liblzma.so.5.8.1"},
             // ICU versions  
             {"libicudata.so", "libicudata.so.77.1"},
             {"libicui18n.so", "libicui18n.so.77.1"},
@@ -670,11 +659,11 @@ final class TermuxInstaller {
             // readline versions
             {"libreadline8.so", "libreadline.so.8"},
             {"libreadline8.so", "libreadline.so.8.3"},
-            {"libreadline83.so", "libreadline.so"},
+            {"libreadline8.so", "libreadline.so"},
             // history versions
             {"libhistory8.so", "libhistory.so.8"},
             {"libhistory8.so", "libhistory.so.8.3"},
-            {"libhistory83.so", "libhistory.so"},
+            {"libhistory8.so", "libhistory.so"},
             // libxml2 versions
             {"libxml2-16.so", "libxml2.so"},
             {"libxml2-16.so", "libxml2.so.16"},
@@ -772,7 +761,16 @@ final class TermuxInstaller {
             {"libavdevice61.so", "libavdevice.so.61"},
             {"libpostproc58.so", "libpostproc.so.58"},
             {"libswresample5.so", "libswresample.so.5"},
-            {"libswscale8.so", "libswscale.so.8"}
+            {"libswscale8.so", "libswscale.so.8"},
+            // FFmpeg symlinks from versioned to generic names
+            {"libavutil59.so", "libavutil.so"},
+            {"libavcodec61.so", "libavcodec.so"},
+            {"libavformat61.so", "libavformat.so"},
+            {"libavfilter10.so", "libavfilter.so"},
+            {"libavdevice61.so", "libavdevice.so"},
+            {"libpostproc58.so", "libpostproc.so"},
+            {"libswresample5.so", "libswresample.so"},
+            {"libswscale8.so", "libswscale.so"}
         };
         
         // Create symlinks for executables in /usr/bin

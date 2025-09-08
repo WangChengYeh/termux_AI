@@ -1924,6 +1924,21 @@ Package: at
 Installed-Size: 208
 Maintainer: @termux
 Architecture: aarch64
+Version: 3.2.5-2
+Suggests: termux-services
+Filename: pool/main/a/at/at_3.2.5-2_aarch64.deb
+Size: 31636
+MD5sum: cbf16c4b9b06268707c06d77b240fe22
+SHA1: e525ab451ebe630f425e757fa8a478e71620ae4f
+SHA256: 0020825c3d196a08f71b817b377f55ab320ac7dcf8c1a0dabe9adab843243ac9
+SHA512: 634ff85ad1cc346838ef322b50d4fffd5d72009c9864d6a7f82fa63388c7f136f3b61695814ea09d1e43a37d912664f9dd64cc62ff3fae117bc517996bea7013
+Description: AT and batch delayed command scheduling utility and daemon
+Homepage: https://salsa.debian.org/debian/at
+
+Package: at
+Installed-Size: 208
+Maintainer: @termux
+Architecture: aarch64
 Version: 3.2.5-1
 Suggests: termux-services
 Filename: pool/main/a/at/at_3.2.5-1_aarch64.deb
@@ -1934,6 +1949,24 @@ SHA256: ed7098430823e57ada397e4fa8c4948f08861485f89520aceeb38bba1fd05a0e
 SHA512: 89a87b90ce73d6f9a1a25521c3c2d99d363b19a84c503f56e7097e89abf36108a7628244177572f31de3ba1b776c63cfc50dd42a5906d5e4b4c520e55ff1aed0
 Description: AT and batch delayed command scheduling utility and daemon
 Homepage: https://salsa.debian.org/debian/at
+
+Package: at-spi2-core
+Installed-Size: 3316
+Maintainer: @termux
+Architecture: aarch64
+Version: 2.56.4-1
+Replaces: at-spi2-atk (<< 2.46.0), atk (<< 2.46.0), libatk
+Provides: at-spi2-atk, atk
+Depends: dbus, glib, libx11, libxi, libxtst
+Breaks: at-spi2-atk (<< 2.46.0), atk (<< 2.46.0), libatk
+Filename: pool/main/a/at-spi2-core/at-spi2-core_2.56.4-1_aarch64.deb
+Size: 347620
+MD5sum: a6f1df08bd05076d0e524e30c064b678
+SHA1: 31d1c9d1f418f3856df1a6bbdcd6eaca591b65a6
+SHA256: 85771bbd237c9febc1d7b89dba3e0a0dc431b2d512cfee33c9dced3c30a5be04
+SHA512: 4615e65692140682ac196a4cb3ef6f59062927f7012af98cf0f97b1f4c78b4b2f473cff64fc33e8dd5eae9d12c36dca5d30c3d0372143b7757dba35a0f42a2a9
+Description: Assistive Technology Service Provider Interface (AT-SPI)
+Homepage: https://wiki.gnome.org/Accessibility
 
 Package: at-spi2-core
 Installed-Size: 3316
@@ -1957,6 +1990,21 @@ Package: atomicparsley
 Installed-Size: 380
 Maintainer: @termux
 Architecture: aarch64
+Version: 1:20240608.083822.1ed9031-1
+Depends: libc++, zlib
+Filename: pool/main/a/atomicparsley/atomicparsley_1:20240608.083822.1ed9031-1_aarch64.deb
+Size: 108240
+MD5sum: 43578c02c40cbd3b51a5c4ae42649d2f
+SHA1: 9342e336ebeaaedc24acaf55e8000c185fb7e8ac
+SHA256: ec3441bb600696ffea52f3846863c2063a88fb16862c19872b4e172cb03e5123
+SHA512: 6817c6ccee74b05735c6eeff311b4c5c10bf546e4cdc662c3c79d187086691f363c6d44eb2570a9fc1cf79e4e39fdbbe02e6ae5832cf58949ca4179ee11a219d
+Description: Read, parse and set metadata of MPEG-4 and 3gp files
+Homepage: https://github.com/wez/atomicparsley
+
+Package: atomicparsley
+Installed-Size: 380
+Maintainer: @termux
+Architecture: aarch64
 Version: 1:20240608.083822.1ed9031
 Depends: libc++, zlib
 Filename: pool/main/a/atomicparsley/atomicparsley_1:20240608.083822.1ed9031_aarch64.deb
@@ -1967,6 +2015,21 @@ SHA256: 16bb5ea3b1a14886792342621940fc7e23c4aa4d44d4a8e516aee8cab92566f0
 SHA512: 2945da7d78f09cb003e05e619426f8eebc92ef8fa7b601c264d504d285e805b00998a70cc07922eb294d6916d47415abea2a7433d4069beb88e575e41f9718ce
 Description: Read, parse and set metadata of MPEG-4 and 3gp files
 Homepage: https://github.com/wez/atomicparsley
+
+Package: atomvm
+Installed-Size: 708
+Maintainer: @termux
+Architecture: aarch64
+Version: 1:0.6.6-1
+Depends: zlib
+Filename: pool/main/a/atomvm/atomvm_1:0.6.6-1_aarch64.deb
+Size: 176076
+MD5sum: c32c530024de31ab9e9032a768fe6d99
+SHA1: f8d1500f3ba7f4c9f208d11871ce58ad292f5e58
+SHA256: 4f0a1eaec2572254142edb74279273e8e1e2451915c78e643d7ccb2530b255b1
+SHA512: c436b8e8f92d98eb2a83758c8bc18d425c00a13fbde957f34ae59e65e734d1fb0f2c891297aa47ef40c6211d00ae7c02c4338d2bb66ac9f82b07bcc4e33d88b2
+Description: The minimal Erlang VM implementation
+Homepage: https://github.com/bettio/AtomVM
 
 Package: atomvm
 Installed-Size: 712
