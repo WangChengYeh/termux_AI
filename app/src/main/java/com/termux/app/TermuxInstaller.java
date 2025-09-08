@@ -616,7 +616,15 @@ final class TermuxInstaller {
             "libFLAC++.so",
             // Rubber Band audio time-stretching and pitch-shifting libraries
             "librubberband.so",
-            "librubberband-jni.so"
+            "librubberband-jni.so",
+            // Little CMS library for color management (FFmpeg dependency)
+            "liblcms2.so",
+            // VMAF (Video Multi-Method Assessment Fusion) library for FFmpeg
+            "libvmaf.so",
+            // VidStab (Video Stabilization) library for FFmpeg
+            "libvidstab.so",
+            // FFTW (Fastest Fourier Transform in the West) library
+            "libfftw3.so"
         };
         
         // Define version postfix symlinks that point to base libraries in /usr/lib
